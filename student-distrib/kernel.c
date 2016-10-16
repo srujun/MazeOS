@@ -7,6 +7,10 @@
 #include "lib.h"
 #include "i8259.h"
 #include "debug.h"
+#include "idt.h"
+#include "paging.h"
+#include "rtc.h"
+#include "keyboard.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -144,22 +148,32 @@ entry (unsigned long magic, unsigned long addr)
 		ltr(KERNEL_TSS);
 	}
 
+    /* Construct the IDT entries */
+    initialize_idt();
+    lidt(idt_desc_ptr);
+
 	/* Init the PIC */
 	i8259_init();
 
+    /* Initializing Paging */
+    init_paging();
+
 	/* Initialize devices, memory, filesystem, enable device interrupts on the
 	 * PIC, any other initialization stuff... */
+	rtc_init();
+	keyboard_init();
 
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your
 	 * IDT correctly otherwise QEMU will triple fault and simple close
 	 * without showing you any output */
-	/*printf("Enabling Interrupts\n");
-	sti();*/
+	printf("Enabling Interrupts\n");
+	sti();
 
 	/* Execute the first program (`shell') ... */
+    int* j = NULL;
+    *j = 99;
 
 	/* Spin (nicely, so we don't chew up cycles) */
 	asm volatile(".1: hlt; jmp .1;");
 }
-

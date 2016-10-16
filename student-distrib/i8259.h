@@ -37,5 +37,11 @@ void enable_irq(uint32_t irq_num);
 void disable_irq(uint32_t irq_num);
 /* Send end-of-interrupt signal for the specified IRQ */
 void send_eoi(uint32_t irq_num);
+// This handles the programmable interrupt timer
+extern void pic_master_irq_pit(void);
+// This handles undefined irqs for master
+extern void pic_master_irq_handler(void);
+// This handles undefined irqs for slave
+extern void pic_slave_irq_handler(void);
 
 #endif /* _I8259_H */

@@ -29,6 +29,16 @@ clear(void)
     }
 }
 
+/*
+ * TODO: documentation
+ */
+void 
+clear_setpos(int x, int y) {
+    clear();
+    screen_x = x;
+    screen_y = y;
+}
+
 /* Standard printf().
  * Only supports the following format strings:
  * %%  - print a literal '%' character
