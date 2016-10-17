@@ -90,8 +90,7 @@ keyboard_init()
 void
 keyboard_interrupt_handler()
 {
-    int flags;
-    cli_and_save(flags);
+    disable_irq(KEYBOARD_IRQ);
 
     uint8_t c = inb(KEYBOARD_PORT);
     io_wait();
@@ -118,5 +117,5 @@ keyboard_interrupt_handler()
     }
 
     send_eoi(KEYBOARD_IRQ);
-    restore_flags(flags);
+    enable_irq(KEYBOARD_IRQ);
 }

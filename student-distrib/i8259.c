@@ -155,7 +155,7 @@ send_eoi(uint32_t irq_num)
     uint8_t port;
     uint8_t value;
 
-     // Check if the irq_num belongs to master or slave
+     /* Check if the irq_num belongs to master or slave */
     if(irq_num < PIC_MAX_PINS)
         port = MASTER_8259_PORT;
     else
@@ -185,10 +185,9 @@ send_eoi(uint32_t irq_num)
 void
 pit_interrupt_handler(void)
 {
-    int flags;
-    cli_and_save(flags);
-    outb(UNIMPLEMENTED_ACK, MASTER_8259_PORT);
-    restore_flags(flags);
+    disable_irq(PIT_IRQ);
+    send_eoi(PIT_IRQ);
+    enable_irq(PIT_IRQ);
 }
 
 
@@ -204,11 +203,8 @@ pit_interrupt_handler(void)
 void
 pic_master_irq_handler(void)
 {
-    int flags;
-    cli_and_save(flags);
     printf("Unimplemented master PIC IRQ!\n");
     outb(UNIMPLEMENTED_ACK, MASTER_8259_PORT);
-    restore_flags(flags);
 }
 
 
@@ -227,5 +223,4 @@ pic_slave_irq_handler(void)
     printf("Unimplemented slave PIC IRQ!\n");
     outb(UNIMPLEMENTED_ACK, MASTER_8259_PORT);
     outb(UNIMPLEMENTED_ACK, SLAVE_8259_PORT);
-    sti();
 }

@@ -59,8 +59,7 @@ rtc_init(void)
 void
 rtc_interrupt_handler(void)
 {
-    unsigned int flags;
-    cli_and_save(flags);
+    disable_irq(RTC_IRQ);
 
     /* test_interrupts(); */
 
@@ -69,5 +68,5 @@ rtc_interrupt_handler(void)
     inb(RTC_PORT2);
 
     send_eoi(RTC_IRQ);
-    restore_flags(flags);
+    enable_irq(RTC_IRQ);
 }
