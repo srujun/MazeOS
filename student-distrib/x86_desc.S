@@ -11,10 +11,8 @@
 .globl  tss, tss_desc_ptr, ldt, ldt_desc_ptr
 .globl  gdt_ptr
 .globl  idt_desc_ptr, idt
-
-# ***********************
 .globl  gdt_register
-# ***********************
+
 
 .align 4
 
@@ -111,10 +109,9 @@ _idt:
 
 idt_bottom:
 
-# ****************************
+# Create the pointer to the Global Descriptor Table
 .align 4
     .word 0 # Padding
 gdt_register:
     .word gdt_bottom - gdt - 1
     .long gdt
-# ****************************
