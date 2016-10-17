@@ -1,6 +1,5 @@
 /* i8259.h - Defines used in interactions with the 8259 interrupt
  * controller
- * vim:ts=4 noexpandtab
  */
 
 #ifndef _I8259_H
@@ -12,10 +11,13 @@
 #define MASTER_8259_PORT 0x20
 #define SLAVE_8259_PORT  0xA0
 
+/* Random unused port for IO Wait */
+#define WAIT_PORT        0x80
+
 /* Initialization control words to init each PIC.
  * See the Intel manuals for details on the meaning
  * of each word */
-#define ICW1    0x11
+#define ICW1          0x11
 #define ICW2_MASTER   0x20
 #define ICW2_SLAVE    0x28
 #define ICW3_MASTER   0x04
@@ -27,6 +29,14 @@
  * to declare the interrupt finished */
 #define EOI             0x60
 
+/* Byte used to send acknowledgement for any unimplemented interrupts. */
+#define UNIMPLEMENTED_ACK  0x20
+
+#define PIC_MAX_PINS    8
+
+/* PIT */
+#define PIT_IRQ         0
+
 /* Externally-visible functions */
 
 /* Initialize both PICs */
@@ -37,11 +47,12 @@ void enable_irq(uint32_t irq_num);
 void disable_irq(uint32_t irq_num);
 /* Send end-of-interrupt signal for the specified IRQ */
 void send_eoi(uint32_t irq_num);
-// This handles the programmable interrupt timer
-extern void pic_master_irq_pit(void);
-// This handles undefined irqs for master
+
+/* Handles the programmable interrupt timer (PIT) interrupts */
+extern void pit_interrupt_handler(void);
+/* Handles undefined IRQs from master PIC */
 extern void pic_master_irq_handler(void);
-// This handles undefined irqs for slave
+/* Handles undefined IRQs from slave PIC */
 extern void pic_slave_irq_handler(void);
 
 #endif /* _I8259_H */

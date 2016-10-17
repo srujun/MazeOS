@@ -2,8 +2,8 @@
  * vim:ts=4 noexpandtab
  */
 
-#ifndef LIB_H
-#define LIB_H
+#ifndef _LIB_H
+#define _LIB_H
 
 #include "types.h"
 
@@ -145,4 +145,4 @@ do {                                    \
 			);                      \
 } while(0)
 
-#endif /* LIB_H */
+#endif /* _LIB_H */

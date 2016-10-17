@@ -16,8 +16,17 @@
 /* Check if the bit BIT in FLAGS is set. */
 #define CHECK_FLAG(flags,bit)   ((flags) & (1 << (bit)))
 
-/* Check if MAGIC is valid and print the Multiboot information structure
-   pointed by ADDR. */
+
+/*
+ * entry
+ *   DESCRIPTION: Check if MAGIC is valid and print the Multiboot information
+ *                structure pointed by ADDR.
+ *   INPUTS: magic - multiboot magic
+ *           addr - pointer to the multiboot_info_t struct
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Checks boot information and prints to screen, spins afterward
+ */
 void
 entry (unsigned long magic, unsigned long addr)
 {
@@ -171,8 +180,10 @@ entry (unsigned long magic, unsigned long addr)
 	sti();
 
 	/* Execute the first program (`shell') ... */
-    int* j = NULL;
-    *j = 99;
+
+    /* Test Page Fault */
+    /*int* j = NULL;
+    *j = 99;*/
 
 	/* Spin (nicely, so we don't chew up cycles) */
 	asm volatile(".1: hlt; jmp .1;");

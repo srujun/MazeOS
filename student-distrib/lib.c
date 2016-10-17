@@ -29,15 +29,22 @@ clear(void)
     }
 }
 
+
 /*
- * TODO: documentation
+ * clear_setpos
+ *   DESCRIPTION: Clears video memory and sets the cursor X and Y positions
+ *   INPUTS: X, Y - cursor coordinates to set to
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Changes the screen cursor position for future prints
  */
-void 
+void
 clear_setpos(int x, int y) {
     clear();
     screen_x = x;
     screen_y = y;
 }
+
 
 /* Standard printf().
  * Only supports the following format strings:
