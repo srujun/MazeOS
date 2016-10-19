@@ -12,7 +12,9 @@
 #define PTE_FIRST_4MB      0x07  // present, R/W enabled, User access
 #define KERNEL_MASK        0x83  // PageSize 4MB, R/W enabled, Supervisor access
 
-#define VIDEO_MEM_IDX      0xB8  // index of start of video memory
+#define VIDEO_MEM_START    0xB8  // index of start of video memory
+#define VIDEO_MEM_PG_COUNT 8     // number of pages in video memory (32KB)
+
 #define KERNEL_MEM_START   0x400000 // start of 4MB Kernel in memory
 
 
@@ -39,14 +41,17 @@ init_paging(void)
     for (i = 0; i < PAGE_COUNT; i++)
         page_directory[i] = PDE_INIT;
 
-    /* Initialize the 4KB table for the first 4MB in physical memory,
-       this includes the video memory */
+    /* Initialize the 4KB table for the first 4MB in physical memory */
     for (i = 0; i < PAGE_COUNT; i++)
     {
-        if (i == VIDEO_MEM_IDX)
-            first_4MB_table[i] = (i * PAGE_ALIGN) | PTE_VIDEO;
-        else
-            first_4MB_table[i] = (i * PAGE_ALIGN) | PDE_INIT;
+        first_4MB_table[i] = (i * PAGE_ALIGN) | PDE_INIT;
+    }
+
+    /* Initialize video memory pages (32KB) starting at 0xB8000 */
+    for (i = 0; i < VIDEO_MEM_PG_COUNT; i++)
+    {
+        first_4MB_table[VIDEO_MEM_START + i] =
+            ((VIDEO_MEM_START + i) * PAGE_ALIGN) | PTE_VIDEO;
     }
 
     /* First Page Directory entry should point to first_4MB_table */
