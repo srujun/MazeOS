@@ -179,6 +179,7 @@ entry (unsigned long magic, unsigned long addr)
 	printf("Enabling Interrupts\n");
 	sti();
 
+    clear_setpos(0, 0);
 	/* Execute the first program (`shell') ... */
 
     /* Test Page Fault */
