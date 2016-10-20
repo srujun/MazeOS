@@ -11,6 +11,7 @@
 #include "paging.h"
 #include "rtc.h"
 #include "keyboard.h"
+#include "filesystem.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -180,6 +181,11 @@ entry (unsigned long magic, unsigned long addr)
 	sti();
 
     clear_setpos(0, 0);
+
+    /* Initialize the filesystem */
+    module_t* mod = (module_t*)mbi->mods_addr;
+    fs_init((void *)mod->mod_start, (void *)mod->mod_end);
+
 	/* Execute the first program (`shell') ... */
 
     /* Test Page Fault */
