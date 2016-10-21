@@ -11,6 +11,7 @@
 #include "paging.h"
 #include "rtc.h"
 #include "keyboard.h"
+#include "shell.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -181,6 +182,7 @@ entry (unsigned long magic, unsigned long addr)
 
     clear_setpos(0, 0);
 	/* Execute the first program (`shell') ... */
+    shell_loop();
 
     /* Test Page Fault */
     /*int* j = NULL;
