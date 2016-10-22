@@ -9,6 +9,13 @@
 #define NUM_ROWS 25
 #define ATTRIB 0x7
 
+#define CURSOR_PORT 0x3D4
+#define CURSOR_REG_HIGH 0x0E
+#define CURSOR_REG_LOW 0x0F
+#define CURSOR_MASK 0xFF
+#define CURSOR_OFFSET 8
+
+
 static int screen_x;
 static int screen_y;
 static char* video_mem = (char *)VIDEO;
@@ -44,6 +51,7 @@ clear_setpos(int x, int y) {
     clear();
     screen_x = x;
     screen_y = y;
+    update_cursor(screen_x, screen_y);
 }
 
 
@@ -230,6 +238,7 @@ putc(uint8_t c)
         // screen_x %= NUM_COLS;
         // screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
     }
+    update_cursor(screen_x, screen_y);
 }
 
 /*
@@ -256,6 +265,26 @@ shift_display()
         *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1)) = ' ';
         *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1) + 1) = ATTRIB;
     }
+}
+
+/*
+ * void update_cursor();
+ *   Inputs: row, col
+ *   Return Value: void
+ *   Function: Move cursor position to location
+ *             specified by row and col values
+ */
+void 
+update_cursor(int col, int row)
+{
+    unsigned short position = (row * NUM_COLS) + col;
+
+    // cursor LOW port to vga INDEX register
+    outb(CURSOR_REG_LOW, CURSOR_PORT);
+    outb((unsigned char)(position & CURSOR_MASK), CURSOR_PORT + 1);
+    // cursor HIGH port to vga INDEX register
+    outb(CURSOR_REG_HIGH, CURSOR_PORT);
+    outb((unsigned char )((position >> CURSOR_OFFSET) & CURSOR_MASK), CURSOR_PORT + 1);
 }
 
 /*
