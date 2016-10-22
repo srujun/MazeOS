@@ -8,6 +8,7 @@
 #include "i8259.h"
 #include "lib.h"
 
+volatile int rtc_interrupt_occurred = 0;
 
 /*
  * rtc_init
@@ -69,4 +70,67 @@ rtc_interrupt_handler(void)
 
     send_eoi(RTC_IRQ);
     enable_irq(RTC_IRQ);
+}
+
+int32_t
+rtc_read(int32_t fd, void* buf, int32_t nbytes)
+{
+    while(!rtc_interrupt_occurred)
+    {
+
+    }
+    rtc_interrupt_occurred = 0;
+    return 0;
+}
+
+int32_t
+rtc_write(int32_t fd, const void* buf, int32_t nbytes)
+{
+    uint set_divider;
+    uint32_t freq;
+    uint count;
+    char prev_saved;
+
+    if(nbytes != 4)
+        return -1;
+
+    memcpy(&freq, buf, sizeof(uint32_t));
+    
+    count = 0;
+    
+    /* set register STATUS_REG_A */
+    outb(STATUS_REG_A, RTC_PORT1);
+    prev_saved = inb(RTC_PORT2);
+
+    if(freq <= 0 || freq >= 1024)
+        return -1;
+
+    while(freq != 1)
+    {
+        if(freq % 2 != 0)
+            return -1;
+        
+        freq = freq/2;
+        count++;
+    }
+
+    set_divider = DIVIDER_SETTING_CEIL - count;
+
+    outb(STATUS_REG_A, RTC_PORT1);
+    /* write rate to STATUS_REG_A */
+    outb((prev_saved & MASK_LOWER) | set_divider, RTC_PORT2);
+
+    return 0;
+}
+
+int32_t
+rtc_open(const uint8_t* filename)
+{
+    return 0;
+}
+
+int32_t
+rtc_close(int32_t fd)
+{
+    return 0;
 }
