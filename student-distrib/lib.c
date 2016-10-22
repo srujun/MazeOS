@@ -3,6 +3,7 @@
  */
 
 #include "lib.h"
+
 #define VIDEO 0xB8000
 #define NUM_COLS 80
 #define NUM_ROWS 25
@@ -204,15 +205,56 @@ puts(int8_t* s)
 void
 putc(uint8_t c)
 {
-    if(c == '\n' || c == '\r') {
-        screen_y = (screen_y + 1) % NUM_ROWS;
-        screen_x=0;
-    } else {
+    if(c == '\n' || c == '\r')
+    {
+        // screen_y = (screen_y + 1) % NUM_ROWS;
+        if(screen_y == NUM_ROWS - 1)
+            shift_display();
+        else
+            screen_y++;
+        screen_x = 0;
+    }
+    else
+    {
         *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1)) = c;
         *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1) + 1) = ATTRIB;
         screen_x++;
-        screen_x %= NUM_COLS;
-        screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
+        if(screen_x >= NUM_COLS)
+        {
+            if(screen_y == NUM_ROWS - 1) // we are in the last row
+                shift_display();
+            else
+                screen_y++;
+            screen_x = 0;
+        }
+        // screen_x %= NUM_COLS;
+        // screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
+    }
+}
+
+/*
+* void shift_display();
+*   Inputs: none
+*   Return Value: void
+*   Function: Shift all lines up by one to
+*             implement scrolling functionality
+*/
+void
+shift_display()
+{
+    int j;
+
+    for(j = 1; j < NUM_ROWS; j++)
+    {
+        void * dest = video_mem + ((NUM_COLS * (j - 1)) << 1);
+        void * src  = video_mem + ((NUM_COLS * j) << 1);;
+        memcpy(dest, src, NUM_COLS * 2);
+    }
+
+    for(j = 0; j < NUM_COLS; j++)
+    {
+        *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1)) = ' ';
+        *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1) + 1) = ATTRIB;
     }
 }
 
