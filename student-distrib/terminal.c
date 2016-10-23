@@ -70,7 +70,6 @@ terminal_write(int32_t fd, const void* buf, int32_t nbytes)
 {
     disable_irq(KEYBOARD_IRQ);
 
-    int i;
     int8_t char_arr[256];
     char_arr[nbytes] = '\0';
     memcpy(char_arr, buf, nbytes);

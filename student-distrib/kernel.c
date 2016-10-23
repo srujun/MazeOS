@@ -176,10 +176,13 @@ entry (unsigned long magic, unsigned long addr)
 	/* Do not enable the following until after you have set up your
 	 * IDT correctly otherwise QEMU will triple fault and simple close
 	 * without showing you any output */
-	printf("Enabling Interrupts\n");
+	printf("Enabling Interrupts");
 	sti();
 
-    clear_setpos(0, 0);
+	backspace_func();
+	backspace_func();
+	backspace_func();
+    // clear_setpos(0, 0);
 	/* Execute the first program (`shell') ... */
 
     /* Test Page Fault */

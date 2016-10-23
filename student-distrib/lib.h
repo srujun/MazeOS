@@ -12,6 +12,7 @@ void putc(uint8_t c);
 int32_t puts(int8_t *s);
 void shift_display();
 void update_cursor(int col, int row);
+void do_backspace();
 int8_t *itoa(uint32_t value, int8_t* buf, int32_t radix);
 int8_t *strrev(int8_t* s);
 uint32_t strlen(const int8_t* s);

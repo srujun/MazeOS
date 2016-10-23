@@ -293,6 +293,41 @@ update_cursor(int col, int row)
 }
 
 /*
+ * backspace_func
+ *   DESCRIPTION: updates cursor position on terminal
+ *                screen to the locations specified by
+ *                col and row values
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: void
+ *   SIDE EFFECTS: changes position of cursor on
+ *                 screen
+ */
+void 
+do_backspace()
+{
+    if(screen_x == 0 && screen_y == 0)
+        return;
+    if(screen_x != 0)
+        screen_x--;
+    else 
+    {
+        screen_y--;
+        screen_x = NUM_COLS - 1;
+    }
+    update_cursor(screen_x, screen_y);
+    putc(' ');
+    if(screen_x != 0)
+        screen_x--;
+    else
+    {
+        screen_y--;
+        screen_x = NUM_COLS - 1;
+    }
+    update_cursor(screen_x, screen_y);
+}
+
+/*
 * int8_t* itoa(uint32_t value, int8_t* buf, int32_t radix);
 *   Inputs: uint32_t value = number to convert
 *			int8_t* buf = allocated buffer to place string in
