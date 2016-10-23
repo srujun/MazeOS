@@ -11,7 +11,7 @@
 #include "types.h"
 
 /* flags keeps tracks of all the special keys */
-int buffer_size = 0;
+static int buffer_size = 0;
 static uint8_t buffer[MAX_BUFFER_SIZE];
 
 static uint8_t l_shift;
@@ -112,7 +112,7 @@ keyboard_init()
  *                We mask interrupts and store the flags. Also, we ignore
  *                Backspace, alt, ctrl, shift, delete, arrow keys, caps,
  *                numlck, scroll lck.
- *   INPUTS: buf - The buffer to write data to
+ *   INPUTS: none
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: Prints the character to the screen
