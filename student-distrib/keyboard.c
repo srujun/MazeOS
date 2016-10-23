@@ -89,7 +89,7 @@ void
 keyboard_init()
 {
     /* clear the buffer */
-    memset(buffer, 0, 128);
+    memset(buffer, 0, MAX_BUFFER_SIZE);
 
     buffer_size = 0;
     ack = 0;
@@ -122,20 +122,38 @@ keyboard_interrupt_handler()
 
     /* Check the status of Left Ctrl Key,
        TODO: Handle the Left and Right ctrl spamming */
-    ctrl = c == CTRL_PRESSED;
+    if(c == CTRL_PRESSED)
+    {
+        ctrl = c == CTRL_PRESSED;
+        send_eoi(KEYBOARD_IRQ);
+        enable_irq(KEYBOARD_IRQ);
+        return;
+    }
 
     /* Check the status of Shift Keys */
-    shift = c == L_SHIFT_PRESSED || c == R_SHIFT_PRESSED;
+    if(c == L_SHIFT_PRESSED || c == R_SHIFT_PRESSED)
+    {
+        shift = c == L_SHIFT_PRESSED || c == R_SHIFT_PRESSED;
+        send_eoi(KEYBOARD_IRQ);
+        enable_irq(KEYBOARD_IRQ);
+        return;
+    }
+    
 
     /* Check the status of Caps Keys */
     if (c == CAPS_PRESSED)
+    {
         caps = !caps;
+        send_eoi(KEYBOARD_IRQ);
+        enable_irq(KEYBOARD_IRQ);
+        return;
+    }
 
     if(ctrl && !shift)
     {
         if(c == L)
         {
-            memset(buffer, 0, 128);
+            memset(buffer, 0, MAX_BUFFER_SIZE);
             buffer_size = 0;
             buffer[buffer_size] = 12; /* TODO: other keys & MAGIC NUMBER */
             send_eoi(KEYBOARD_IRQ);
