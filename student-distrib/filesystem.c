@@ -30,6 +30,42 @@ fs_init(void * start_addr, void * end_addr)
 
 
 /*
+ *
+ */
+int32_t fs_open(const uint8_t* filename)
+{
+    return 0;
+}
+
+
+/*
+ *
+ */
+int32_t fs_close(int32_t fd)
+{
+    return 0;
+}
+
+
+/*
+ *
+ */
+int32_t fs_read(int32_t fd, void* buf, int32_t nbytes)
+{
+    return 0;
+}
+
+
+/*
+ *
+ */
+int32_t fs_write(int32_t fd, const void* buf, int32_t nbytes)
+{
+    return 0;
+}
+
+
+/*
  * read_dentry_by_name
  *   DESCRIPTION:
  *   INPUTS:
