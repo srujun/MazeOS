@@ -7,6 +7,7 @@
 #include "rtc.h"
 #include "i8259.h"
 #include "lib.h"
+#include "types.h"
 
 volatile int rtc_interrupt_occurred = 0;
 
