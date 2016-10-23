@@ -14,7 +14,8 @@
 int buffer_size = 0;
 static uint8_t buffer[MAX_BUFFER_SIZE];
 
-static uint8_t shift;
+static uint8_t l_shift;
+static uint8_t r_shift;
 static uint8_t caps;
 static uint8_t ctrl;
 
@@ -138,16 +139,30 @@ keyboard_interrupt_handler()
     }
 
     /* Check the status of Shift Keys */
-    if (c == L_SHIFT_PRESSED || c == R_SHIFT_PRESSED)
+    if (c == L_SHIFT_PRESSED)
     {
-        shift = 1;
+        l_shift = 1;
         send_eoi(KEYBOARD_IRQ);
         enable_irq(KEYBOARD_IRQ);
         return;
     }
-    else if (c == L_SHIFT_RELEASED && c == R_SHIFT_RELEASED)
+    else if (c == R_SHIFT_PRESSED)
     {
-        shift = 0;
+        r_shift = 1;
+        send_eoi(KEYBOARD_IRQ);
+        enable_irq(KEYBOARD_IRQ);
+        return;
+    }
+    else if (c == L_SHIFT_RELEASED)
+    {
+        l_shift = 0;
+        send_eoi(KEYBOARD_IRQ);
+        enable_irq(KEYBOARD_IRQ);
+        return;
+    }
+    else if (c == R_SHIFT_RELEASED)
+    {
+        r_shift = 0;
         send_eoi(KEYBOARD_IRQ);
         enable_irq(KEYBOARD_IRQ);
         return;
@@ -163,7 +178,7 @@ keyboard_interrupt_handler()
         return;
     }
 
-    if(ctrl && !shift)
+    if(ctrl)
     {
         if(c == L)
         {
@@ -218,13 +233,13 @@ keyboard_interrupt_handler()
         /* The following implementation is to handle other keys and cases */
         uint8_t output = scan_code_1[0][c];
 
-        if(caps ^ shift)
+        if(caps ^ (l_shift || r_shift))
         {
             if(output >= 97 && output <= 122)
                 output -= 32;
         }
 
-        if(shift)
+        if(l_shift || r_shift)
         {
             if(!(output >= 65 && output <= 92) && !(output >= 97 && output <= 122))
                 output = scan_code_1[1][c];
