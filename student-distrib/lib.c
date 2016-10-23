@@ -3,10 +3,18 @@
  */
 
 #include "lib.h"
-#define VIDEO 0xB8000
-#define NUM_COLS 80
-#define NUM_ROWS 25
-#define ATTRIB 0x7
+
+#define VIDEO           0xB8000
+#define NUM_COLS        80
+#define NUM_ROWS        25
+#define ATTRIB          0x7
+
+#define CURSOR_PORT     0x3D4
+#define CURSOR_REG_HIGH 0x0E
+#define CURSOR_REG_LOW  0x0F
+#define CURSOR_MASK     0xFF
+#define CURSOR_OFFSET   8
+
 
 static int screen_x;
 static int screen_y;
@@ -43,6 +51,7 @@ clear_setpos(int x, int y) {
     clear();
     screen_x = x;
     screen_y = y;
+    update_cursor(screen_x, screen_y);
 }
 
 
@@ -204,16 +213,117 @@ puts(int8_t* s)
 void
 putc(uint8_t c)
 {
-    if(c == '\n' || c == '\r') {
-        screen_y = (screen_y + 1) % NUM_ROWS;
-        screen_x=0;
-    } else {
+    if(c == '\n' || c == '\r')
+    {
+        if(screen_y == NUM_ROWS - 1)
+            shift_display();
+        else
+            screen_y++;
+        screen_x = 0;
+    }
+    else
+    {
         *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1)) = c;
         *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1) + 1) = ATTRIB;
         screen_x++;
-        screen_x %= NUM_COLS;
-        screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
+        if(screen_x >= NUM_COLS)
+        {
+            if(screen_y == NUM_ROWS - 1) // we are in the last row
+                shift_display();
+            else
+                screen_y++;
+            screen_x = 0;
+        }
     }
+    update_cursor(screen_x, screen_y);
+}
+
+/*
+ * shift_display
+ *   DESCRIPTION: implements scrolling functionality on
+ *                terminal screen by shifting values in
+ *                each row of video memory to the row
+ *                above
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: void
+ *   SIDE EFFECTS: changes values in video memory
+ */
+void
+shift_display()
+{
+    int j;
+
+    for(j = 1; j < NUM_ROWS; j++)
+    {
+        void * dest = video_mem + ((NUM_COLS * (j - 1)) << 1);
+        void * src  = video_mem + ((NUM_COLS * j) << 1);;
+        memcpy(dest, src, NUM_COLS * 2);
+    }
+
+    for(j = 0; j < NUM_COLS; j++)
+    {
+        *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1)) = ' ';
+        *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1) + 1) = ATTRIB;
+    }
+}
+
+/*
+ * update cursor
+ *   DESCRIPTION: updates cursor position on terminal
+ *                screen to the locations specified by
+ *                col and row values
+ *   INPUTS: integers specifying row and column
+ *   OUTPUTS: none
+ *   RETURN VALUE: void
+ *   SIDE EFFECTS: changes position of cursor on
+ *                 screen
+ */
+void
+update_cursor(int col, int row)
+{
+    unsigned short position = (row * NUM_COLS) + col;
+
+    // cursor LOW port to vga INDEX register
+    outb(CURSOR_REG_LOW, CURSOR_PORT);
+    outb((unsigned char)(position & CURSOR_MASK), CURSOR_PORT + 1);
+    // cursor HIGH port to vga INDEX register
+    outb(CURSOR_REG_HIGH, CURSOR_PORT);
+    outb((unsigned char )((position >> CURSOR_OFFSET) & CURSOR_MASK), CURSOR_PORT + 1);
+}
+
+/*
+ * do_backspace
+ *   DESCRIPTION: implements backspace functionality
+ *                on the terminal screen
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: void
+ *   SIDE EFFECTS: changes position of cursor on
+ *                 screen
+ */
+void
+do_backspace()
+{
+    if(screen_x == 0 && screen_y == 0)
+        return;
+    if(screen_x != 0)
+        screen_x--;
+    else
+    {
+        screen_y--;
+        screen_x = NUM_COLS - 1;
+    }
+    update_cursor(screen_x, screen_y);
+    putc(' ');
+    if(screen_x != 0)
+        screen_x--;
+    else
+    {
+        screen_y--;
+        screen_x = NUM_COLS - 1;
+    }
+    update_cursor(screen_x, screen_y);
 }
 
 /*
