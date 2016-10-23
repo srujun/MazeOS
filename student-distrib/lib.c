@@ -4,16 +4,16 @@
 
 #include "lib.h"
 
-#define VIDEO 0xB8000
-#define NUM_COLS 80
-#define NUM_ROWS 25
-#define ATTRIB 0x7
+#define VIDEO           0xB8000
+#define NUM_COLS        80
+#define NUM_ROWS        25
+#define ATTRIB          0x7
 
-#define CURSOR_PORT 0x3D4
+#define CURSOR_PORT     0x3D4
 #define CURSOR_REG_HIGH 0x0E
-#define CURSOR_REG_LOW 0x0F
-#define CURSOR_MASK 0xFF
-#define CURSOR_OFFSET 8
+#define CURSOR_REG_LOW  0x0F
+#define CURSOR_MASK     0xFF
+#define CURSOR_OFFSET   8
 
 
 static int screen_x;
@@ -215,7 +215,6 @@ putc(uint8_t c)
 {
     if(c == '\n' || c == '\r')
     {
-        // screen_y = (screen_y + 1) % NUM_ROWS;
         if(screen_y == NUM_ROWS - 1)
             shift_display();
         else
@@ -235,19 +234,21 @@ putc(uint8_t c)
                 screen_y++;
             screen_x = 0;
         }
-        // screen_x %= NUM_COLS;
-        // screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
     }
     update_cursor(screen_x, screen_y);
 }
 
 /*
-* void shift_display();
-*   Inputs: none
-*   Return Value: void
-*   Function: Shift all lines up by one to
-*             implement scrolling functionality
-*/
+ * shift_display
+ *   DESCRIPTION: implements scrolling functionality on
+ *                terminal screen by shifting values in
+ *                each row of video memory to the row 
+ *                above
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: void
+ *   SIDE EFFECTS: changes values in video memory
+ */
 void
 shift_display()
 {
@@ -268,11 +269,15 @@ shift_display()
 }
 
 /*
- * void update_cursor();
- *   Inputs: row, col
- *   Return Value: void
- *   Function: Move cursor position to location
- *             specified by row and col values
+ * update cursor
+ *   DESCRIPTION: updates cursor position on terminal
+ *                screen to the locations specified by
+ *                col and row values
+ *   INPUTS: integers specifying row and column
+ *   OUTPUTS: none
+ *   RETURN VALUE: void
+ *   SIDE EFFECTS: changes position of cursor on
+ *                 screen
  */
 void 
 update_cursor(int col, int row)

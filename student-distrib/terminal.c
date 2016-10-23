@@ -34,7 +34,7 @@ terminal_open(const uint8_t* filename)
  *   SIDE EFFECTS: none
  */
 int32_t 
-terminal_close(int32_t fds)
+terminal_close(int32_t fd)
 {
     return 0;
 }
@@ -71,25 +71,10 @@ terminal_write(int32_t fd, const void* buf, int32_t nbytes)
     disable_irq(KEYBOARD_IRQ);
 
     int i;
-    int8_t char_arr[128];
+    int8_t char_arr[256];
     char_arr[nbytes] = '\0';
     memcpy(char_arr, buf, nbytes);
-    /*for(i = 0; i < nbytes; i++) 
-    {
-        if(x_pos == (NUM_ROWS-1)) 
-        {
-            if(y_pos == (NUM_COLS-1)) 
-                row_idx++;
-            y_pos++;
-            x_pos = 0;
-        }
-        screen_buffer[x_pos][y_pos] = char_arr[i];
-        x_pos++;
-    }
-    for(i = 0; i < nbytes; i++) 
-    {
-        
-    }*/
+    puts(char_arr);
 
     enable_irq(KEYBOARD_IRQ);
 
