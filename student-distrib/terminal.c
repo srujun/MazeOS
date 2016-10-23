@@ -18,7 +18,7 @@
  *   RETURN VALUE: zero signifying success
  *   SIDE EFFECTS: clears screen and sets cursor to the start of screen
  */
-int32_t 
+int32_t
 terminal_open(const uint8_t* filename)
 {
     clear_setpos(0, 0);
@@ -33,7 +33,7 @@ terminal_open(const uint8_t* filename)
  *   RETURN VALUE: zero signifying success
  *   SIDE EFFECTS: none
  */
-int32_t 
+int32_t
 terminal_close(int32_t fd)
 {
     return 0;
@@ -47,7 +47,7 @@ terminal_close(int32_t fd)
  *   RETURN VALUE: zero signifying success
  *   SIDE EFFECTS: none
  */
-int32_t 
+int32_t
 terminal_read(int32_t fd, void* buf, int32_t nbytes)
 {
     return 0;
@@ -65,15 +65,17 @@ terminal_read(int32_t fd, void* buf, int32_t nbytes)
  *   RETURN VALUE: zero signifying success
  *   SIDE EFFECTS: Prints the character to the screen
  */
-int32_t 
+int32_t
 terminal_write(int32_t fd, const void* buf, int32_t nbytes)
 {
     disable_irq(KEYBOARD_IRQ);
 
     int i;
-    for(i = 0; i < nbytes; i++) 
+    for(i = 0; i < nbytes; i++)
     {
-        putc(buf);
+        if(*(uint8_t*)buf == '\0')
+            break;
+        putc(*(uint8_t*)buf);
         buf++;
     }
 

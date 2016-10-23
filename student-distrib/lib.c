@@ -242,7 +242,7 @@ putc(uint8_t c)
  * shift_display
  *   DESCRIPTION: implements scrolling functionality on
  *                terminal screen by shifting values in
- *                each row of video memory to the row 
+ *                each row of video memory to the row
  *                above
  *   INPUTS: none
  *   OUTPUTS: none
@@ -279,7 +279,7 @@ shift_display()
  *   SIDE EFFECTS: changes position of cursor on
  *                 screen
  */
-void 
+void
 update_cursor(int col, int row)
 {
     unsigned short position = (row * NUM_COLS) + col;
@@ -303,14 +303,14 @@ update_cursor(int col, int row)
  *   SIDE EFFECTS: changes position of cursor on
  *                 screen
  */
-void 
+void
 do_backspace()
 {
     if(screen_x == 0 && screen_y == 0)
         return;
     if(screen_x != 0)
         screen_x--;
-    else 
+    else
     {
         screen_y--;
         screen_x = NUM_COLS - 1;
