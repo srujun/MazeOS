@@ -39,10 +39,10 @@ const static unsigned char scan_code_1[2][SUPPORTED_KEYS] = {
         'z', 'x', 'c', 'v',
         'b', 'n', 'm', ',',
         '.', '/', 16, '*',
-        18, ' ', 20, 0,
+        0, ' ', 0, 0,
         0, 0, 0, 0,
         0, 0, 0, 0,
-        0, 144, 145, '7',
+        0, 0, 0, '7',
         '8', '9', '-', '4',
         '5', '6', '+', '1',
         '2', '3', '0', '.',
@@ -65,10 +65,10 @@ const static unsigned char scan_code_1[2][SUPPORTED_KEYS] = {
         'z', 'x', 'c', 'v',
         'b', 'n', 'm', '<',
         '>', '?', 16, '*',
-        18, ' ', 20, 0,
+        0, ' ', 0, 0,
         0, 0, 0, 0,
         0, 0, 0, 0,
-        0, 144, 145, '7',
+        0, 0, 0, '7',
         '8', '9', '-', '4',
         '5', '6', '+', '1',
         '2', '3', '0', '.',
@@ -91,7 +91,7 @@ void
 keyboard_init()
 {
     /* clear the buffer */
-    memset(buffer, 0, MAX_BUFFER_SIZE);
+    memset(buffer, '\0', MAX_BUFFER_SIZE);
 
     buffer_size = 0;
     ack = 0;
@@ -202,7 +202,7 @@ keyboard_interrupt_handler()
     {
         if(c == L)
         {
-            memset(buffer, 0, MAX_BUFFER_SIZE);
+            memset(buffer, '\0', MAX_BUFFER_SIZE);
             buffer_size = 0;
             /* TODO: other keys */
             buffer[buffer_size] = CTRL_L;
@@ -221,6 +221,23 @@ keyboard_interrupt_handler()
     /* Check if any button is being pressed */
     if (!(c & RELEASED_MASK))
     {
+        if(c == BACKSPACE)
+        {
+            if (buffer_size == 0)
+            {
+                send_eoi(KEYBOARD_IRQ);
+                enable_irq(KEYBOARD_IRQ);
+                return;
+            }
+
+            buffer_size--;
+            buffer[buffer_size] = '\0';
+            do_backspace();
+            send_eoi(KEYBOARD_IRQ);
+            enable_irq(KEYBOARD_IRQ);
+            return;
+        }
+
         if(c == ENTER_KEYCODE)
         {
             buffer[buffer_size] = '\0';
@@ -235,23 +252,6 @@ keyboard_interrupt_handler()
         {
             buffer[buffer_size] = '\0';
             ack = 1;
-            send_eoi(KEYBOARD_IRQ);
-            enable_irq(KEYBOARD_IRQ);
-            return;
-        }
-
-        if(c == BACKSPACE)
-        {
-            if (buffer_size == 0)
-            {
-                send_eoi(KEYBOARD_IRQ);
-                enable_irq(KEYBOARD_IRQ);
-                return;
-            }
-
-            buffer_size--;
-            buffer[buffer_size] = 0;
-            do_backspace();
             send_eoi(KEYBOARD_IRQ);
             enable_irq(KEYBOARD_IRQ);
             return;
@@ -322,7 +322,7 @@ keyboard_read(int32_t fd, void* buf, int32_t nbytes)
 
     disable_irq(KEYBOARD_IRQ);
     memcpy(buf, buffer, buffer_size);
-    memset(buffer, 0, MAX_BUFFER_SIZE);
+    memset(buffer, '\0', MAX_BUFFER_SIZE);
     buffer_size = 0;
     enable_irq(KEYBOARD_IRQ);
 
