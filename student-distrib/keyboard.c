@@ -94,7 +94,8 @@ keyboard_init()
 
     buffer_size = 0;
     ack = 0;
-    shift = 0;
+    l_shift = 0;
+    r_shift = 0;
     caps = 0;
     ctrl = 0;
 
@@ -189,6 +190,12 @@ keyboard_interrupt_handler()
             enable_irq(KEYBOARD_IRQ);
             return;
         }
+        else
+        {
+            send_eoi(KEYBOARD_IRQ);
+            enable_irq(KEYBOARD_IRQ);
+            return;
+        }
     }
 
     /* Check if any button is being pressed */
@@ -235,13 +242,13 @@ keyboard_interrupt_handler()
 
         if(caps ^ (l_shift || r_shift))
         {
-            if(output >= 97 && output <= 122)
+            if(output >= 'a' && output <= 'z')
                 output -= 32;
         }
 
         if(l_shift || r_shift)
         {
-            if(!(output >= 65 && output <= 92) && !(output >= 97 && output <= 122))
+            if(!(output >= 'A' && output <= 'Z') && !(output >= 'a' && output <= 'z'))
                 output = scan_code_1[1][c];
         }
         if(c == TAB)
