@@ -9,26 +9,33 @@
 #define KEYBOARD_IRQ         1
 #define KEYBOARD_PORT        0x60
 #define KEYBOARD_STATUS_PORT 0x64
-
-/* Definitions of all the commands */
-#define ACK                  0xFA
-#define RESEND               0xFE
-#define MAX_TRIES            3
-#define MAX                  6
 #define RELEASED_MASK        0x80
 
-/* Definitions of all the keys */
-#define L_SHIFT              0x2A
-#define R_SHIFT              0x36
-#define CAPS                 0x3A
-#define L_CTRL               0x1D
-#define R_CTRL               0xE0
-#define SHIFT_SET            1
+#define MAX_BUFFER_SIZE      128
+#define SUPPORTED_KEYS       93
 
-#define CURSOR_UP 0x48
-#define CURSOR_DOWN 0x50
-#define CURSOR_LEFT 0x4B
-#define CURSOR_RIGHT 0x4D
+/* Definitions of all the keys */
+#define ENTER_KEYCODE        0x1C
+
+#define L_SHIFT_PRESSED      0x2A
+#define R_SHIFT_PRESSED      0x36
+#define L_SHIFT_RELEASED     0xAA
+#define R_SHIFT_RELEASED     0xB6
+
+#define CAPS_PRESSED         0x3A
+
+#define CTRL_PRESSED         0x1D
+#define CTRL_RELEASED        0x9D
+
+#define TAB                  0x0F
+#define L                    0x26
+
+#define CURSOR_UP            0x48
+#define CURSOR_DOWN          0x50
+#define CURSOR_LEFT          0x4B
+#define CURSOR_RIGHT         0x4D
+
+#define BACKSPACE            0x0E
 
 /* Externally visible functions */
 
