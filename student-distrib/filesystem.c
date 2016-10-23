@@ -26,41 +26,6 @@ fs_init(void * start_addr, void * end_addr)
 
     uint32_t fs_size = (uint32_t)(fs_end_addr - fs_start_addr) / 1024;
     memcpy(&metadata, fs_start_addr, sizeof(fs_metadata_t));
-
-    printf("Filesystem size = %dkB, ", fs_size);
-    printf("num inodes = %d, num data block = %d\n", metadata.num_inodes, metadata.num_data_blocks);
-
-    int i, j, k;
-    // for (i = 0; i < metadata.num_dentries; i++)
-    // {
-    //     dentry_t file;
-    //     read_dentry_by_index(i, &file);
-    //     printf("Name: %s, type: %d, inode: %d\n", file.filename, file.filetype, file.inode);
-    // }
-
-    uint8_t frame0[200];
-    uint8_t frame1[200];
-    uint32_t bytes1 = read_data(63, 0, frame0, 200);
-    uint32_t bytes2 = read_data(26, 0, frame1, 200);
-    
-    for (k = 0; k < 10000; k++)
-    {
-        for (i = 0; i < 5000000; i++)
-        {
-            if (i % 1000000 == 0)
-            {
-                clear_setpos(0, 5);
-                for (j = 0; j < bytes1; j++)
-                    putc(frame0[j]);
-            }
-            else if (i % 500000 == 0)
-            {
-                clear_setpos(0, 5);
-                for (j = 0; j < bytes2; j++)
-                    putc(frame1[j]);
-            }
-        }
-    }
 }
 
 
@@ -75,6 +40,38 @@ fs_init(void * start_addr, void * end_addr)
 int32_t
 read_dentry_by_name(const uint8_t* fname, dentry_t* dentry)
 {
+    int i;
+    uint8_t dentry_name[FILENAME_SIZE];
+    void * start = DENTRY_SIZE + fs_start_addr;
+
+    /* Keep looping till we see a file in the current directory that matches
+       the name of the requested file */
+    for (i = 0; i < metadata.num_dentries; i++)
+    {
+        /* Get the current dentry's filename */
+        memcpy(dentry_name, start, FILENAME_SIZE);
+
+        /* check if the filenames match */
+        if (!strncmp(fname, dentry_name, FILENAME_SIZE))
+        {
+            /* Copy the dentry file name */
+            memcpy(dentry->filename, start, FILENAME_SIZE);
+            dentry->filename[FILENAME_SIZE] = '\0';
+
+            /* Copy the dentry file type */
+            start += FILENAME_SIZE;
+            memcpy(&(dentry->filetype), start, sizeof(uint32_t));
+
+            /* Copy the dentry inode */
+            start += sizeof(uint32_t);
+            memcpy(&(dentry->inode), start, sizeof(uint32_t));
+
+            return 0;
+        }
+
+        start += DENTRY_SIZE;
+    }
+
     /* Non-existant file or invalid index */
     return -1;
 }
