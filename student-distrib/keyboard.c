@@ -17,7 +17,8 @@ static uint8_t buffer[MAX_BUFFER_SIZE];
 static uint8_t l_shift;
 static uint8_t r_shift;
 static uint8_t caps;
-static uint8_t ctrl;
+static uint8_t l_ctrl;
+static uint8_t r_ctrl;
 
 volatile uint8_t ack;
 
@@ -97,7 +98,8 @@ keyboard_init()
     l_shift = 0;
     r_shift = 0;
     caps = 0;
-    ctrl = 0;
+    l_ctrl = 0;
+    r_ctrl = 0;
 
     enable_irq(KEYBOARD_IRQ);
 }
@@ -121,23 +123,40 @@ keyboard_interrupt_handler()
     disable_irq(KEYBOARD_IRQ);
 
     uint8_t c = inb(KEYBOARD_PORT);
+    uint8_t c2 = inb(KEYBOARD_PORT);
 
     /* Check the status of Left Ctrl Key,
        TODO: Handle the Left and Right ctrl spamming */
     if (c == CTRL_PRESSED)
     {
-        ctrl = 1;
+        l_ctrl = 1;
         send_eoi(KEYBOARD_IRQ);
         enable_irq(KEYBOARD_IRQ);
         return;
     }
     else if (c == CTRL_RELEASED)
     {
-        ctrl = 0;
+        l_ctrl = 0;
         send_eoi(KEYBOARD_IRQ);
         enable_irq(KEYBOARD_IRQ);
         return;
     }
+    
+    if (c == CTRL_PRESSED && c2 == EXTENSION)
+    {
+        r_ctrl = 1;
+        send_eoi(KEYBOARD_IRQ);
+        enable_irq(KEYBOARD_IRQ);
+        return;
+    }
+    else if (c == CTRL_RELEASED && c2 == EXTENSION)
+    {
+        r_ctrl = 0;
+        send_eoi(KEYBOARD_IRQ);
+        enable_irq(KEYBOARD_IRQ);
+        return;
+    }
+    
 
     /* Check the status of Shift Keys */
     if (c == L_SHIFT_PRESSED)
@@ -179,13 +198,14 @@ keyboard_interrupt_handler()
         return;
     }
 
-    if(ctrl)
+    if(l_ctrl || r_ctrl)
     {
         if(c == L)
         {
             memset(buffer, 0, MAX_BUFFER_SIZE);
             buffer_size = 0;
-            buffer[buffer_size] = 12; /* TODO: other keys & MAGIC NUMBER */
+            /* TODO: other keys */
+            buffer[buffer_size] = CTRL_L;
             send_eoi(KEYBOARD_IRQ);
             enable_irq(KEYBOARD_IRQ);
             return;
@@ -243,7 +263,7 @@ keyboard_interrupt_handler()
         if(caps ^ (l_shift || r_shift))
         {
             if(output >= 'a' && output <= 'z')
-                output -= 32;
+                output -= OFFSET_TO_UPPERCASE;
         }
 
         if(l_shift || r_shift)

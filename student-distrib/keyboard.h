@@ -13,6 +13,10 @@
 
 #define MAX_BUFFER_SIZE      128
 #define SUPPORTED_KEYS       93
+#define OFFSET_TO_UPPERCASE  32
+
+/* Control codes */
+#define CTRL_L               12
 
 /* Definitions of all the keys */
 #define ENTER_KEYCODE        0x1C
@@ -26,6 +30,7 @@
 
 #define CTRL_PRESSED         0x1D
 #define CTRL_RELEASED        0x9D
+#define EXTENSION            0xE0
 
 #define TAB                  0x0F
 #define L                    0x26
