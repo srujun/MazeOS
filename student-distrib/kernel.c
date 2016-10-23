@@ -179,10 +179,7 @@ entry (unsigned long magic, unsigned long addr)
 	printf("Enabling Interrupts");
 	sti();
 
-	backspace_func();
-	backspace_func();
-	backspace_func();
-    // clear_setpos(0, 0);
+    clear_setpos(0, 0);
 	/* Execute the first program (`shell') ... */
 
     /* Test Page Fault */
