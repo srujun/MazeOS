@@ -122,18 +122,32 @@ keyboard_interrupt_handler()
 
     /* Check the status of Left Ctrl Key,
        TODO: Handle the Left and Right ctrl spamming */
-    if(c == CTRL_PRESSED)
+    if (c == CTRL_PRESSED)
     {
-        ctrl = c == CTRL_PRESSED;
+        ctrl = 1;
+        send_eoi(KEYBOARD_IRQ);
+        enable_irq(KEYBOARD_IRQ);
+        return;
+    }
+    else if (c == CTRL_RELEASED)
+    {
+        ctrl = 0;
         send_eoi(KEYBOARD_IRQ);
         enable_irq(KEYBOARD_IRQ);
         return;
     }
 
     /* Check the status of Shift Keys */
-    if(c == L_SHIFT_PRESSED || c == R_SHIFT_PRESSED)
+    if (c == L_SHIFT_PRESSED || c == R_SHIFT_PRESSED)
     {
-        shift = c == L_SHIFT_PRESSED || c == R_SHIFT_PRESSED;
+        shift = 1;
+        send_eoi(KEYBOARD_IRQ);
+        enable_irq(KEYBOARD_IRQ);
+        return;
+    }
+    else if (c == L_SHIFT_RELEASED && c == R_SHIFT_RELEASED)
+    {
+        shift = 0;
         send_eoi(KEYBOARD_IRQ);
         enable_irq(KEYBOARD_IRQ);
         return;
