@@ -293,10 +293,9 @@ update_cursor(int col, int row)
 }
 
 /*
- * backspace_func
- *   DESCRIPTION: updates cursor position on terminal
- *                screen to the locations specified by
- *                col and row values
+ * do_backspace
+ *   DESCRIPTION: implements backspace functionality
+ *                on the terminal screen
  *   INPUTS: none
  *   OUTPUTS: none
  *   RETURN VALUE: void
