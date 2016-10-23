@@ -45,7 +45,6 @@ rtc_init(void)
     enable_irq(RTC_IRQ);
 }
 
-
 /*
  * rtc_interrupt_handler
  *   DESCRIPTION: Handles the RTC interrupt request. Currently calls
@@ -64,7 +63,7 @@ rtc_interrupt_handler(void)
 
     /* test_interrupts(); */
 
-    /* this is to take care of interrupts after IRQ 8 */
+    /* this is to ensure Register C is read after IRQ 8 */
     outb(STATUS_REG_C, RTC_PORT1);
     inb(RTC_PORT2);
 
@@ -72,6 +71,16 @@ rtc_interrupt_handler(void)
     enable_irq(RTC_IRQ);
 }
 
+/*
+ * rtc_read
+ *   DESCRIPTION: Waits until an interrupt has occured.
+ *   INPUTS: fd     - ignored
+ *           buf    - ignored
+ *           nbytes - ignored
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0
+ *   SIDE EFFECTS: none
+ */
 int32_t
 rtc_read(int32_t fd, void* buf, int32_t nbytes)
 {
@@ -83,6 +92,18 @@ rtc_read(int32_t fd, void* buf, int32_t nbytes)
     return 0;
 }
 
+/*
+ * rtc_write
+ *   DESCRIPTION: Updates the frequency of the RTC interrupts
+ *                according to the given input.
+ *   INPUTS: fd     - ignored
+ *           buf    - frequency to set
+ *           nbytes - number of bytes being passed
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0  - if succesful
+ *                 -1 - otherwise
+ *   SIDE EFFECTS: Changes frequency of the RTC interrupts
+ */
 int32_t
 rtc_write(int32_t fd, const void* buf, int32_t nbytes)
 {
@@ -113,7 +134,7 @@ rtc_write(int32_t fd, const void* buf, int32_t nbytes)
         freq = freq/2;
         count++;
     }
-
+    
     set_divider = DIVIDER_SETTING_CEIL - count;
 
     outb(STATUS_REG_A, RTC_PORT1);
@@ -123,12 +144,28 @@ rtc_write(int32_t fd, const void* buf, int32_t nbytes)
     return 0;
 }
 
+/*
+ * rtc_open
+ *   DESCRIPTION: Currently, does nothing
+ *   INPUTS: filename - ignored
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0
+ *   SIDE EFFECTS: none
+ */
 int32_t
 rtc_open(const uint8_t* filename)
 {
     return 0;
 }
 
+/*
+ * rtc_close
+ *   DESCRIPTION: Currently, does nothing
+ *   INPUTS: fd - ignored
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0
+ *   SIDE EFFECTS: none
+ */
 int32_t
 rtc_close(int32_t fd)
 {

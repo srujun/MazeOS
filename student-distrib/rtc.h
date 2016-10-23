@@ -17,7 +17,7 @@
 #define STATUS_REG_B       0x8B
 #define STATUS_REG_C       0x0C
 
-#define RTC_IRQ            8
+#define RTC_IRQ               8
 
 #define MASK_PIE           0x40
 #define MASK_LOWER         0xF0
