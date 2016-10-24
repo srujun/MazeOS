@@ -7,6 +7,8 @@
 #ifndef RTC_H
 #define RTC_H
 
+#include "types.h"
+
 /* Used to specify an index or register number */
 #define RTC_PORT1          0x70
 /* To read or write from/to byte of CMOS configuration space */
@@ -17,20 +19,27 @@
 #define STATUS_REG_B       0x8B
 #define STATUS_REG_C       0x0C
 
-#define RTC_IRQ            8
+#define RTC_IRQ               8
 
 #define MASK_PIE           0x40
 #define MASK_LOWER         0xF0
 
-/* To turn on IRQ 8 to which the rtc is attached default rate is 1024,
-   can't go beyond 15 */
-#define DIVIDER_SETTING    15
-/* Base frequency at which the system keeps proper time is 32.768 kHz */
-#define BASE_FREQUENCY     32768
+/* Values for the divider setting to set the frequency on the RTC */
+#define DIVIDER_SETTING_CEIL 16
+#define DIVIDER_SETTING 	 15
 
 /* Externally visible functions */
 
 void rtc_init(void);
+
 extern void rtc_interrupt_handler(void);
+
+int32_t rtc_read(int32_t fd, void* buf, int32_t nbytes);
+
+int32_t rtc_write(int32_t fd, const void* buf, int32_t nbytes);
+
+int32_t rtc_open(const uint8_t* filename);
+
+int32_t rtc_close(int32_t fd);
 
 #endif /* RTC_H */
