@@ -319,14 +319,15 @@ keyboard_read(int32_t fd, void* buf, int32_t nbytes)
 {
     /* spin until user presses Enter or the buffer has been filled */
     while(!ack);
-
+    ack = 0;
     disable_irq(KEYBOARD_IRQ);
     memcpy(buf, buffer, buffer_size);
+    uint32_t size = buffer_size;
     memset(buffer, '\0', MAX_BUFFER_SIZE);
     buffer_size = 0;
     enable_irq(KEYBOARD_IRQ);
 
-    return buffer_size;
+    return size;
 }
 
 /*
