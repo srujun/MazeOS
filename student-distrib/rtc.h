@@ -7,6 +7,8 @@
 #ifndef RTC_H
 #define RTC_H
 
+#include "types.h"
+
 /* Used to specify an index or register number */
 #define RTC_PORT1          0x70
 /* To read or write from/to byte of CMOS configuration space */
