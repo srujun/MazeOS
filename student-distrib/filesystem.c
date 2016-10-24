@@ -5,6 +5,7 @@
 
 #define DENTRY_SIZE      64
 #define BLOCK_SIZE       4096
+#define TYPE_DIRECTORY   1
 
 static fs_metadata_t metadata;
 static void * fs_start_addr;
@@ -30,16 +31,16 @@ fs_init(void * start_addr, void * end_addr)
 
     f_idx = 0;
 
-    uint32_t fs_size = (uint32_t)(fs_end_addr - fs_start_addr) / 1024;
+    // uint32_t fs_size = (uint32_t)(fs_end_addr - fs_start_addr) / 1024;
     memcpy(&metadata, fs_start_addr, sizeof(fs_metadata_t));
 
-    int i;
-    for (i = 0; i < metadata.num_dentries; i++)
-    {
-        dentry_t d;
-        read_dentry_by_index(i, &d);
-        printf("Name: %s, Type: %d, Inode: %d\n", d.filename, d.filetype, d.inode);
-    }
+    // int i;
+    // for (i = 0; i < metadata.num_dentries; i++)
+    // {
+    //     dentry_t d;
+    //     read_dentry_by_index(i, &d);
+    //     printf("Name: %s, Type: %d, Inode: %d\n", d.filename, d.filetype, d.inode);
+    // }
 
     // int8_t buf[2001];
     // uint8_t fname[FILENAME_SIZE + 1] = "verylargetextwithverylongname.tx";
@@ -58,6 +59,7 @@ fs_init(void * start_addr, void * end_addr)
  */
 int32_t fs_open(const uint8_t* filename)
 {
+    /* check if the file exists */
     return 0;
 }
 
@@ -104,23 +106,22 @@ int32_t fs_read(int32_t fd, void* buf, int32_t nbytes)
         dentry_t d;
         int32_t suc = read_dentry_by_name(fd_file.filename, &d);
 
-        if (d.filetype == 1) // directory by index
+        if (!suc && d.filetype == TYPE_DIRECTORY) /* directory by index */
         {
             dentry_t f;
             if (!read_dentry_by_index(f_idx, &f))
             {
-                int32_t bytes_read = read_data(f.inode, 0, buf, nbytes);
                 f_idx++;
-                if(bytes_read == -1)
-                    return 0;
-
-                return bytes_read;
+                memcpy(buf, f.filename, FILENAME_SIZE + 1);
+                int32_t len = strlen(f.filename);
+                f.filename[len] = '\0';
+                return len;
             }
             /* read_dentry_by_index failed */
+            /* TODO: reset f_idx to 0 */
             return 0;
         }
-
-        if (!suc)
+        else if (!suc)
         {
             int32_t bytes_read = read_data(d.inode, 0, buf, nbytes);
             if(bytes_read == -1)
@@ -158,6 +159,7 @@ read_dentry_by_name(const uint8_t* fname, dentry_t* dentry)
 {
     int i;
     uint8_t dentry_name[FILENAME_SIZE];
+    memset(dentry_name, '\0', FILENAME_SIZE);
     void * start = DENTRY_SIZE + fs_start_addr;
 
     /* Keep looping till we see a file in the current directory that matches
@@ -171,6 +173,7 @@ read_dentry_by_name(const uint8_t* fname, dentry_t* dentry)
         if (!strncmp((int8_t *)fname, (int8_t *)dentry_name, FILENAME_SIZE))
         {
             /* Copy the dentry file name */
+            memset(dentry->filename, '\0', FILENAME_SIZE + 1);
             memcpy(dentry->filename, start, FILENAME_SIZE);
             dentry->filename[FILENAME_SIZE] = '\0';
 
