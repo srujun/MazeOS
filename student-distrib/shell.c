@@ -31,6 +31,7 @@ shell_loop()
     uint8_t greeting[] = "Welcome to MazeOS!\n";
     uint8_t prompt[] = "MazeOS $ ";
     uint8_t unsupported[] = "Command not supported!\n";
+    uint8_t buffer_full[] = "\nInput buffer is full!\n";
 
     terminal_write(0, greeting, strlen((int8_t *)greeting));
     while(1)
@@ -38,6 +39,14 @@ shell_loop()
         terminal_write(0, prompt, strlen((int8_t *)prompt));
         /* blocks until we have complete input from the keyboard */
         bytes_read = keyboard_read(0, buf, MAX_INPUT_BUFFER_SIZE);
+
+        if (bytes_read >= MAX_INPUT_BUFFER_SIZE - 1)
+        {
+            terminal_write(0, buffer_full, strlen((int8_t *)buffer_full));
+            /* clear the command buffer */
+            memset(buf, '\0', MAX_INPUT_BUFFER_SIZE);
+            continue;
+        }
 
         /* check control codes */
         if (buf[0] == CTRL_L)
@@ -171,7 +180,7 @@ command_cat(const uint8_t * params, uint32_t paramsize)
     memcpy(fd_file.filename, params, paramsize);
 
     cnt = fs_read((int32_t)(&fd_file), buf, 1453);
-    if (-1 == cnt)
+    if (0 == cnt)
     {
         terminal_write(1, read_failed, strlen((int8_t *)read_failed));
         return 3;
@@ -205,6 +214,7 @@ command_rtc(const uint8_t * params, uint32_t paramsize)
             return 0;
         }
 
+        /* increase frequency limit (by a factor of 2) */
         if (buf[0] == CTRL_A)
         {
             clear_setpos(0, 0);
