@@ -63,6 +63,7 @@ rtc_interrupt_handler(void)
     disable_irq(RTC_IRQ);
 
     /* test_interrupts(); */
+    rtc_interrupt_occurred = 1;
 
     /* this is to ensure Register C is read after IRQ 8 */
     outb(STATUS_REG_C, RTC_PORT1);
@@ -85,10 +86,8 @@ rtc_interrupt_handler(void)
 int32_t
 rtc_read(int32_t fd, void* buf, int32_t nbytes)
 {
-    while(!rtc_interrupt_occurred)
-    {
+    while(!rtc_interrupt_occurred);
 
-    }
     rtc_interrupt_occurred = 0;
     return 0;
 }
@@ -108,9 +107,9 @@ rtc_read(int32_t fd, void* buf, int32_t nbytes)
 int32_t
 rtc_write(int32_t fd, const void* buf, int32_t nbytes)
 {
-    uint set_divider;
+    uint8_t set_divider;
     uint32_t freq;
-    uint count;
+    uint8_t count;
     char prev_saved;
 
     if(nbytes != 4)
