@@ -12,6 +12,7 @@
 #include "rtc.h"
 #include "keyboard.h"
 #include "shell.h"
+#include "filesystem.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -32,6 +33,7 @@ void
 entry (unsigned long magic, unsigned long addr)
 {
 	multiboot_info_t *mbi;
+    uint32_t fs_start_addr, fs_end_addr;
 
 	/* Clear the screen. */
 	clear();
@@ -69,6 +71,11 @@ entry (unsigned long magic, unsigned long addr)
 		while(mod_count < mbi->mods_count) {
 			printf("Module %d loaded at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_start);
 			printf("Module %d ends at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_end);
+            if (mod_count == 0)
+            {
+                fs_start_addr = (unsigned int)mod->mod_start;
+                fs_end_addr = (unsigned int)mod->mod_end;
+            }
 			printf("First few bytes of module:\n");
 			for(i = 0; i<16; i++) {
 				printf("0x%x ", *((char*)(mod->mod_start+i)));
@@ -181,6 +188,10 @@ entry (unsigned long magic, unsigned long addr)
 	sti();
 
     clear_setpos(0, 0);
+
+    /* Initialize the filesystem */
+    fs_init((void *)fs_start_addr, (void *)fs_end_addr);
+
 	/* Execute the first program (`shell') ... */
     shell_loop();
 
