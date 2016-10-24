@@ -28,44 +28,45 @@ fs_init(void * start_addr, void * end_addr)
 {
     fs_start_addr = start_addr;
     fs_end_addr   = end_addr;
-
     f_idx = 0;
 
-    // uint32_t fs_size = (uint32_t)(fs_end_addr - fs_start_addr) / 1024;
     memcpy(&metadata, fs_start_addr, sizeof(fs_metadata_t));
-
-    // int i;
-    // for (i = 0; i < metadata.num_dentries; i++)
-    // {
-    //     dentry_t d;
-    //     read_dentry_by_index(i, &d);
-    //     printf("Name: %s, Type: %d, Inode: %d\n", d.filename, d.filetype, d.inode);
-    // }
-
-    // int8_t buf[2001];
-    // uint8_t fname[FILENAME_SIZE + 1] = "verylargetextwithverylongname.tx";
-    // fs_desc_t fs_file;
-    // fs_file.index = -1;
-    // memcpy(&(fs_file.filename), fname, 33);
-    // if (!fs_read((int32_t)(&fs_file), buf, 2001))
-    //     printf("File does not exist\n");
-    // else
-    //     puts(buf);
 }
 
 
 /*
- *
+ * TODO
+ */
+int32_t
+get_file_size(dentry_t * d)
+{
+    uint32_t inode = d->inode;
+    inode_t file_inode;
+
+    /* compute byte length of the file */
+    void * inode_block_ptr = (inode + 1) * BLOCK_SIZE + fs_start_addr;
+    memcpy(&(file_inode.length), inode_block_ptr, sizeof(uint32_t));
+    return file_inode.length;
+}
+
+
+/*
+ * TODO: check if the file exists
  */
 int32_t fs_open(const uint8_t* filename)
 {
-    /* check if the file exists */
-    return 0;
+    uint32_t suc;
+    dentry_t d;
+    suc = read_dentry_by_name(filename, &d);
+    /* if (d.filetype == 1 && f_idx >= metadata.num_dentries)
+        f_idx = 0;
+        return -1; */
+    return suc;
 }
 
 
 /*
- *
+ * TODO
  */
 int32_t fs_close(int32_t fd)
 {
@@ -80,6 +81,8 @@ int32_t fs_read(int32_t fd, void* buf, int32_t nbytes)
 {
     void * fdp = (void *) fd;
     fs_desc_t fd_file;
+
+    memset(fd_file.filename, '\0', FILENAME_SIZE + 1);
     memcpy(&fd_file, fdp, sizeof(fs_desc_t));
 
     if (fd_file.index >= 0)
@@ -106,21 +109,30 @@ int32_t fs_read(int32_t fd, void* buf, int32_t nbytes)
         dentry_t d;
         int32_t suc = read_dentry_by_name(fd_file.filename, &d);
 
-        if (!suc && d.filetype == TYPE_DIRECTORY) /* directory by index */
+        /* directory by index */
+        if (!suc && d.filetype == TYPE_DIRECTORY)
         {
             dentry_t f;
             if (!read_dentry_by_index(f_idx, &f))
             {
                 f_idx++;
-                memcpy(buf, f.filename, FILENAME_SIZE + 1);
-                int32_t len = strlen(f.filename);
-                f.filename[len] = '\0';
-                return len;
+                int32_t bytes_read = read_data(f.inode, 0, buf, nbytes);
+                if(bytes_read == -1)
+                    return 0;
+
+                return bytes_read;
+                // memcpy(buf, f.filename, FILENAME_SIZE + 1);
+                // int32_t len = strlen(f.filename);
+                // f.filename[len] = '\0';
+                // if (f.filetype == 2)
+                //     return get_file_size(&f);
+                // else
+                //     return 1;
             }
             /* read_dentry_by_index failed */
-            /* TODO: reset f_idx to 0 */
             return 0;
         }
+        /* read file contents, input was NOT directory */
         else if (!suc)
         {
             int32_t bytes_read = read_data(d.inode, 0, buf, nbytes);

@@ -33,6 +33,7 @@ typedef struct fs_desc {
 /* Externally visible functions */
 
 void fs_init(void * start_addr, void * end_addr);
+int32_t get_file_size(dentry_t * d);
 
 int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry);
 int32_t read_dentry_by_index(uint32_t index, dentry_t* dentry);
