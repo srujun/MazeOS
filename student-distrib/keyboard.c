@@ -200,12 +200,38 @@ keyboard_interrupt_handler()
 
     if(l_ctrl || r_ctrl)
     {
-        if(c == L)
+        if(c == SCAN_L)
         {
             memset(buffer, '\0', MAX_BUFFER_SIZE);
             buffer_size = 0;
             /* TODO: other keys */
             buffer[buffer_size] = CTRL_L;
+            ack = 1;
+            buffer_size = 1;
+            send_eoi(KEYBOARD_IRQ);
+            enable_irq(KEYBOARD_IRQ);
+            return;
+        }
+        else if(c == SCAN_A)
+        {
+            memset(buffer, '\0', MAX_BUFFER_SIZE);
+            buffer_size = 0;
+            /* TODO: other keys */
+            buffer[buffer_size] = CTRL_A;
+            ack = 1;
+            buffer_size = 1;
+            send_eoi(KEYBOARD_IRQ);
+            enable_irq(KEYBOARD_IRQ);
+            return;
+        }
+        else if(c == SCAN_C)
+        {
+            memset(buffer, '\0', MAX_BUFFER_SIZE);
+            buffer_size = 0;
+            /* TODO: other keys */
+            buffer[buffer_size] = CTRL_C;
+            ack = 1;
+            buffer_size = 1;
             send_eoi(KEYBOARD_IRQ);
             enable_irq(KEYBOARD_IRQ);
             return;
@@ -240,7 +266,7 @@ keyboard_interrupt_handler()
 
         if(c == ENTER_KEYCODE)
         {
-            buffer[buffer_size] = '\0';
+            buffer[buffer_size] = '\n';
             ack = 1;
             putc('\n');
             send_eoi(KEYBOARD_IRQ);
@@ -271,7 +297,7 @@ keyboard_interrupt_handler()
             if(!(output >= 'A' && output <= 'Z') && !(output >= 'a' && output <= 'z'))
                 output = scan_code_1[1][c];
         }
-        if(c == TAB)
+        if(c == SCAN_TAB)
         {
             buffer[buffer_size] = (' ');
             buffer_size++;
@@ -329,6 +355,27 @@ keyboard_read(int32_t fd, void* buf, int32_t nbytes)
 
     return size;
 }
+
+
+/*
+ * TODO: docs
+ */
+void
+get_kb_buffer(void* buf)
+{
+    disable_irq(KEYBOARD_IRQ);
+
+    memcpy(buf, buffer, MAX_BUFFER_SIZE);
+    if (buffer[0] == CTRL_A || buffer[0] == CTRL_C || buffer[0] == CTRL_L)
+    {
+        memset(buffer, '\0', MAX_BUFFER_SIZE);
+        buffer_size = 0;
+        ack = 0;
+    }
+
+    enable_irq(KEYBOARD_IRQ);
+}
+
 
 /*
  * keyboard_write
