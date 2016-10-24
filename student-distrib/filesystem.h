@@ -24,6 +24,12 @@ typedef struct inode {
     uint32_t data_blocks[MAX_DATA_BLOCK_COUNT];
 } inode_t;
 
+/* Temporary for checkpoint 2 */
+typedef struct fs_desc {
+    int32_t index;
+    uint8_t filename[FILENAME_SIZE + 1];
+} fs_desc_t;
+
 /* Externally visible functions */
 
 void fs_init(void * start_addr, void * end_addr);

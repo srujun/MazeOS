@@ -10,6 +10,10 @@ static fs_metadata_t metadata;
 static void * fs_start_addr;
 static void * fs_end_addr;
 
+/* Temporary for checkpoint 2 */
+// static fs_desc_t fds[];
+static uint32_t f_idx;
+
 /*
  * fs_init
  *   DESCRIPTION:
@@ -24,8 +28,28 @@ fs_init(void * start_addr, void * end_addr)
     fs_start_addr = start_addr;
     fs_end_addr   = end_addr;
 
+    f_idx = 0;
+
     uint32_t fs_size = (uint32_t)(fs_end_addr - fs_start_addr) / 1024;
     memcpy(&metadata, fs_start_addr, sizeof(fs_metadata_t));
+
+    int i;
+    for (i = 0; i < metadata.num_dentries; i++)
+    {
+        dentry_t d;
+        read_dentry_by_index(i, &d);
+        printf("Name: %s, Type: %d, Inode: %d\n", d.filename, d.filetype, d.inode);
+    }
+
+    // int8_t buf[2001];
+    // uint8_t fname[FILENAME_SIZE + 1] = "verylargetextwithverylongname.tx";
+    // fs_desc_t fs_file;
+    // fs_file.index = -1;
+    // memcpy(&(fs_file.filename), fname, 33);
+    // if (!fs_read((int32_t)(&fs_file), buf, 2001))
+    //     printf("File does not exist\n");
+    // else
+    //     puts(buf);
 }
 
 
@@ -48,10 +72,66 @@ int32_t fs_close(int32_t fd)
 
 
 /*
- *
+ * For now, fd is either a pointer to an index or a filename array
  */
 int32_t fs_read(int32_t fd, void* buf, int32_t nbytes)
 {
+    void * fdp = (void *) fd;
+    fs_desc_t fd_file;
+    memcpy(&fd_file, fdp, sizeof(fs_desc_t));
+
+    if (fd_file.index >= 0)
+    {
+        if (fd_file.index >= metadata.num_dentries)
+            return 0;
+
+        /* we have to read from index */
+        dentry_t d;
+        if (!read_dentry_by_index(fd_file.index, &d))
+        {
+            int32_t bytes_read = read_data(d.inode, 0, buf, nbytes);
+            if(bytes_read == -1)
+                return 0;
+
+            return bytes_read;
+        }
+        /* read_dentry_by_index failed */
+        return 0;
+    }
+    else
+    {
+        /* we have to read by filename */
+        dentry_t d;
+        int32_t suc = read_dentry_by_name(fd_file.filename, &d);
+
+        if (d.filetype == 1) // directory by index
+        {
+            dentry_t f;
+            if (!read_dentry_by_index(f_idx, &f))
+            {
+                int32_t bytes_read = read_data(f.inode, 0, buf, nbytes);
+                f_idx++;
+                if(bytes_read == -1)
+                    return 0;
+
+                return bytes_read;
+            }
+            /* read_dentry_by_index failed */
+            return 0;
+        }
+
+        if (!suc)
+        {
+            int32_t bytes_read = read_data(d.inode, 0, buf, nbytes);
+            if(bytes_read == -1)
+                return 0;
+
+            return bytes_read;
+        }
+        /* read_dentry_by_index failed */
+        return 0;
+    }
+
     return 0;
 }
 
@@ -88,7 +168,7 @@ read_dentry_by_name(const uint8_t* fname, dentry_t* dentry)
         memcpy(dentry_name, start, FILENAME_SIZE);
 
         /* check if the filenames match */
-        if (!strncmp(fname, dentry_name, FILENAME_SIZE))
+        if (!strncmp((int8_t *)fname, (int8_t *)dentry_name, FILENAME_SIZE))
         {
             /* Copy the dentry file name */
             memcpy(dentry->filename, start, FILENAME_SIZE);
