@@ -1,4 +1,4 @@
-/* TODO */
+/* shell.c - defines the shell functions */
 
 #include "shell.h"
 #include "filesystem.h"
@@ -14,26 +14,43 @@ static const int8_t cmd_ls[2][4]  = {"ls ", "ls\0"};
 static const int8_t cmd_cat[2][5] = {"cat ", "cat\0"};
 static const int8_t cmd_rtc[2][5] = {"rtc ", "rtc\0"};
 
+static const uint8_t greeting[] = "Welcome to MazeOS!\nSupported commands:\n";
+static const uint8_t help[3][46] = {
+    "    ls - prints files in filesystem\n",
+    "    cat <filename> - prints contents of file\n",
+    "    rtc - runs the RTC test\n"
+};
+static const uint8_t prompt[] = "MazeOS $ ";
+static const uint8_t unsupported[] = "Command not supported!\n";
+static const uint8_t buffer_full[] = "\nInput buffer is full!\n";
+static const uint8_t noparam[] = "Provide a filename!\n";
+static const uint8_t nofile[] = "File not found!\n";
+static const uint8_t read_failed[] = "File read failed!\n";
+
+
 /*
- * TODO
- * Supported commands:
- *   ls - list all files in filesystem
- *   cat - print contents of
+ * shell_loop
+ *   DESCRIPTION: Enters an infinite loop which checks command input from the
+ *                keyboard buffer, parses the command, and then executes it
+ *   INPUTS: none
+ *   OUTPUTS: the output of the command that is run is printed on the screen
+ *   RETURN VALUE: 0 - success (never happens)
+ *   SIDE EFFECTS: none
  */
 int
 shell_loop()
 {
     int8_t buf[MAX_INPUT_BUFFER_SIZE];
-    uint32_t bytes_read;
+    uint32_t bytes_read, i;
+
     memset(buf, '\0', MAX_INPUT_BUFFER_SIZE);
     bytes_read = 0;
 
-    uint8_t greeting[] = "Welcome to MazeOS!\n";
-    uint8_t prompt[] = "MazeOS $ ";
-    uint8_t unsupported[] = "Command not supported!\n";
-    uint8_t buffer_full[] = "\nInput buffer is full!\n";
-
+    /* print greeting */
     terminal_write(0, greeting, strlen((int8_t *)greeting));
+    for (i = 0; i < 3; i++)
+        terminal_write(0, help[i], strlen((int8_t *)help[i]));
+
     while(1)
     {
         terminal_write(0, prompt, strlen((int8_t *)prompt));
@@ -115,10 +132,10 @@ shell_loop()
  * command_list
  *   DESCRIPTION: Test to print the list of files in the filesystem and their
  *                sizes
- *   INPUTS: params - the string of parameters, paramsize - the length of the
- *           params string
- *   OUTPUTS: int
- *   RETURN VALUE: zero - success, > 0 - failed
+ *   INPUTS: params - the string of parameters
+ *           paramsize - the length of the params
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0 - success
  *   SIDE EFFECTS: Prints list of files to the screen
  */
 int
@@ -130,6 +147,7 @@ command_list(const uint8_t * params, uint32_t paramsize)
 
     i = 0;
 
+    /* loop through files until there are no more */
     while (-1 != read_dentry_by_index(i, &d))
     {
         i++;
@@ -139,8 +157,11 @@ command_list(const uint8_t * params, uint32_t paramsize)
         fsize = get_file_size(&d);
         uint8_t extra[] = "  Size: ";
         memcpy(buf + SBUFSIZE, extra, strlen((int8_t *)extra));
+
+        /* convert the size from int to string */
         itoa(fsize, (int8_t *)(buf + SBUFSIZE + strlen((int8_t *)extra)), 10);
         buf[MAX_PRINT_LINE - 1] = '\n';
+
         terminal_write(1, buf, MAX_PRINT_LINE);
     }
 
@@ -149,15 +170,18 @@ command_list(const uint8_t * params, uint32_t paramsize)
 
 
 /*
- * TODO
+ * command_cat
+ *   DESCRIPTION: Test to print the contents of a given file in the filesystem
+ *   INPUTS: params - the string of parameters
+ *           paramsize - the length of the params
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0 - success, >0 - failed
+ *   SIDE EFFECTS: Prints file contents to the screen
  */
 int
 command_cat(const uint8_t * params, uint32_t paramsize)
 {
-    uint8_t noparam[] = "Provide a filename!\n";
-    uint8_t nofile[] = "File not found!\n";
-    uint8_t read_failed[] = "File read failed!\n";
-
+    /* we need filename */
     if(paramsize == 0)
     {
         terminal_write(1, noparam, strlen((int8_t *)noparam));
@@ -165,9 +189,10 @@ command_cat(const uint8_t * params, uint32_t paramsize)
     }
 
     int32_t fd, cnt;
-    uint8_t buf[1453];
-    memset(buf, '\0', 1453);
+    uint8_t buf[9000];
+    memset(buf, '\0', 9000);
 
+    /* check if the file exists */
     if (-1 == (fd = fs_open(params)))
     {
         terminal_write(1, nofile, strlen((int8_t *)nofile));
@@ -179,7 +204,8 @@ command_cat(const uint8_t * params, uint32_t paramsize)
     memset(fd_file.filename, '\0', FILENAME_SIZE + 1);
     memcpy(fd_file.filename, params, paramsize);
 
-    cnt = fs_read((int32_t)(&fd_file), buf, 1453);
+    /* read bytes from the file */
+    cnt = fs_read((int32_t)(&fd_file), buf, 9000);
     if (0 == cnt)
     {
         terminal_write(1, read_failed, strlen((int8_t *)read_failed));
@@ -193,24 +219,36 @@ command_cat(const uint8_t * params, uint32_t paramsize)
 
 
 /*
- * TODO
+ * command_rtc
+ *   DESCRIPTION: Test to check rtc_read and rtc_write
+ *   INPUTS: params - the string of parameters
+ *           paramsize - the length of the params
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0 - success, >0 - failed
+ *   SIDE EFFECTS: none (it resets the RTC to original speed)
  */
 int
 command_rtc(const uint8_t * params, uint32_t paramsize)
 {
+    uint8_t buf[MAX_BUFFER_SIZE];
     uint32_t freq = 2;
-    rtc_write(0, &freq, sizeof(uint32_t));
+    // rtc_write(0, &freq, sizeof(uint32_t));
     clear_setpos(0, 0);
 
     while (1)
     {
-        uint8_t buf[MAX_BUFFER_SIZE];
+        memset(buf, '\0', MAX_BUFFER_SIZE);
+        /* get a copy of the keyboard buffer */
         terminal_read(0, buf, MAX_BUFFER_SIZE);
 
+        /* check if we want to quit */
         if (buf[0] == CTRL_C)
         {
             putc('\n');
             get_kb_buffer(buf);
+            /* reset to the previous frequency */
+            freq = 2;
+            rtc_write(0, &freq, sizeof(uint32_t));
             return 0;
         }
 
@@ -225,6 +263,7 @@ command_rtc(const uint8_t * params, uint32_t paramsize)
         }
 
         putc('R');
+        /* wait until the next RTC interrupt */
         rtc_read(0, "", 0);
     }
 

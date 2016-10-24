@@ -66,4 +66,9 @@ int keyboard_open(const uint8_t* filename);
 
 int keyboard_close(int32_t fd);
 
+/* local helper functions */
+int32_t check_modifier_keys(uint8_t scan1, uint8_t scan2);
+int32_t check_control_codes(uint8_t scan1);
+void print_character(uint8_t scan1);
+
 #endif

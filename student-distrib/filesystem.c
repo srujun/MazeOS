@@ -11,17 +11,16 @@ static fs_metadata_t metadata;
 static void * fs_start_addr;
 static void * fs_end_addr;
 
-/* Temporary for checkpoint 2 */
-// static fs_desc_t fds[];
 static uint32_t f_idx;
 
 /*
  * fs_init
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Initializes the filesystem by parsing the metadata
+ *   INPUTS: start_addr - the memory address at which the filesystem data starts
+ *           end_addr - the memory address at which the filesystem data ends
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Parses the Filesystem metadata
  */
 void
 fs_init(void * start_addr, void * end_addr)
@@ -35,7 +34,12 @@ fs_init(void * start_addr, void * end_addr)
 
 
 /*
- * TODO
+ * get_file_size
+ *   DESCRIPTION: Gets the file size in bytes
+ *   INPUTS: d - pointer to the file's dentry_t object
+ *   OUTPUTS: none
+ *   RETURN VALUE: file size in bytes
+ *   SIDE EFFECTS: none
  */
 int32_t
 get_file_size(dentry_t * d)
@@ -51,33 +55,49 @@ get_file_size(dentry_t * d)
 
 
 /*
- * TODO: check if the file exists
+ * fs_open
+ *   DESCRIPTION: Checks if the file exists in the filesystem
+ *   INPUTS: filename - the name of the file to open
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0 - file exists
+ *                 -1 - the file does not exist
+ *   SIDE EFFECTS: none
  */
-int32_t fs_open(const uint8_t* filename)
+int32_t
+fs_open(const uint8_t* filename)
 {
-    uint32_t suc;
     dentry_t d;
-    suc = read_dentry_by_name(filename, &d);
-    /* if (d.filetype == 1 && f_idx >= metadata.num_dentries)
-        f_idx = 0;
-        return -1; */
-    return suc;
+    return read_dentry_by_name(filename, &d);
 }
 
 
 /*
- * TODO
+ * fs_close
+ *   DESCRIPTION: Currently does nothing
+ *   INPUTS: fd - ignored
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0
+ *   SIDE EFFECTS: none
  */
-int32_t fs_close(int32_t fd)
+int32_t
+fs_close(int32_t fd)
 {
     return 0;
 }
 
 
 /*
- * For now, fd is either a pointer to an index or a filename array
+ * fs_read
+ *   DESCRIPTION: Reads the bytes of a given file based on the file descriptor
+ *   INPUTS: fd - pointer to a fs_desc_t object,
+ *           buf - the buffer to put the bytes into
+ *           nbytes - the number of bytes to read
+ *   OUTPUTS: none
+ *   RETURN VALUE: the number of bytes actually read
+ *   SIDE EFFECTS: increments f_idx
  */
-int32_t fs_read(int32_t fd, void* buf, int32_t nbytes)
+int32_t
+fs_read(int32_t fd, void* buf, int32_t nbytes)
 {
     void * fdp = (void *) fd;
     fs_desc_t fd_file;
@@ -87,10 +107,7 @@ int32_t fs_read(int32_t fd, void* buf, int32_t nbytes)
 
     if (fd_file.index >= 0)
     {
-        if (fd_file.index >= metadata.num_dentries)
-            return 0;
-
-        /* we have to read from index */
+        /* read by the given index */
         dentry_t d;
         if (!read_dentry_by_index(fd_file.index, &d))
         {
@@ -121,13 +138,6 @@ int32_t fs_read(int32_t fd, void* buf, int32_t nbytes)
                     return 0;
 
                 return bytes_read;
-                // memcpy(buf, f.filename, FILENAME_SIZE + 1);
-                // int32_t len = strlen(f.filename);
-                // f.filename[len] = '\0';
-                // if (f.filetype == 2)
-                //     return get_file_size(&f);
-                // else
-                //     return 1;
             }
             /* read_dentry_by_index failed */
             return 0;
@@ -141,7 +151,7 @@ int32_t fs_read(int32_t fd, void* buf, int32_t nbytes)
 
             return bytes_read;
         }
-        /* read_dentry_by_index failed */
+        /* read failed */
         return 0;
     }
 
@@ -150,9 +160,15 @@ int32_t fs_read(int32_t fd, void* buf, int32_t nbytes)
 
 
 /*
- *
+ * fs_write
+ *   DESCRIPTION: Unsupported
+ *   INPUTS: fd, buf, nbytes
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0
+ *   SIDE EFFECTS: none
  */
-int32_t fs_write(int32_t fd, const void* buf, int32_t nbytes)
+int32_t
+fs_write(int32_t fd, const void* buf, int32_t nbytes)
 {
     return 0;
 }
@@ -160,11 +176,13 @@ int32_t fs_write(int32_t fd, const void* buf, int32_t nbytes)
 
 /*
  * read_dentry_by_name
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Gets the dentry_t object of a file specified by its name
+ *   INPUTS: fname - the file's name
+ *           dentry - pointer to the dentry_t object to fill
+ *   OUTPUTS: populates dentry
+ *   RETURN VALUE: 0 - success
+ *                 -1 - failed to get file
+ *   SIDE EFFECTS: none
  */
 int32_t
 read_dentry_by_name(const uint8_t* fname, dentry_t* dentry)
@@ -203,18 +221,21 @@ read_dentry_by_name(const uint8_t* fname, dentry_t* dentry)
         start += DENTRY_SIZE;
     }
 
-    /* Non-existant file or invalid index */
+    /* Non-existant file, filename did not match any */
     return -1;
 }
 
 
 /*
  * read_dentry_by_index
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Gets the dentry_t object of a file specified by its index in
+ *                the filesystem
+ *   INPUTS: index - the file's index
+ *           dentry - pointer to the dentry_t object to fill
+ *   OUTPUTS: populates dentry
+ *   RETURN VALUE: 0 - success
+ *                 -1 - failed to get file
+ *   SIDE EFFECTS: none
  */
 int32_t
 read_dentry_by_index(uint32_t index, dentry_t* dentry)
@@ -245,11 +266,17 @@ read_dentry_by_index(uint32_t index, dentry_t* dentry)
 
 /*
  * read_data
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Reads a given inode data starting from the given offset,
+ *                until the given length. Stops reading at the end of file, if
+ *                the given length is longer than where we can read till
+ *   INPUTS: inode - the inode number of the file to read,
+ *           offset - the offset in bytes from where to start reading,
+ *           buf - the buffer to put the bytes into,
+ *           length - the number of bytes to read
+ *   OUTPUTS: the bytes read from the file
+ *   RETURN VALUE: -1 - failed to read the file (invalid inode or block number)
+ *                 otherwise, number of bytes read (>= 0)
+ *   SIDE EFFECTS: none
  */
 int32_t
 read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length)
@@ -264,6 +291,10 @@ read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length)
     /* compute byte length of the file */
     void * inode_block_ptr = (inode + 1) * BLOCK_SIZE + fs_start_addr;
     memcpy(&(file_inode.length), inode_block_ptr, sizeof(uint32_t));
+
+    /* if offset is greater than length, we cant read */
+    if (file_inode.length < offset)
+        return 0;
 
     /* curb read length if we are being asked to read past the end of file */
     if (length > file_inode.length - offset)
@@ -297,6 +328,10 @@ read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length)
         (file_inode.data_blocks[curr_data_block] + metadata.num_inodes + 1) *
         BLOCK_SIZE + fs_start_addr;
 
+    /* check for invalid data block */
+    if (curr_data_block_ptr > fs_end_addr)
+        return -1;
+
     void * curr_block_end = curr_data_block_ptr + BLOCK_SIZE;
 
     /* move to offset within current block */
@@ -323,10 +358,15 @@ read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length)
         (file_inode.data_blocks[curr_data_block] + metadata.num_inodes + 1) *
         BLOCK_SIZE + fs_start_addr;
 
-    /* we keep reading whole blocks until:
-       1.  */
+    /* we keep reading whole blocks until either:
+       1. the number of bytes still to read is less than the block's size
+       2. we have read all the bytes requested */
     while (bytes_read < length)
     {
+        /* check for invalid data block */
+        if (curr_data_block_ptr > fs_end_addr)
+            return -1;
+
         rem_bytes = length - bytes_read;
         if (rem_bytes < BLOCK_SIZE)
         {

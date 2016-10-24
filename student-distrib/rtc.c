@@ -9,7 +9,7 @@
 #include "lib.h"
 #include "types.h"
 
-volatile int rtc_interrupt_occurred = 0;
+static volatile int rtc_interrupt_occurred = 0;
 
 /*
  * rtc_init
@@ -48,10 +48,9 @@ rtc_init(void)
 
 /*
  * rtc_interrupt_handler
- *   DESCRIPTION: Handles the RTC interrupt request. Currently calls
- *                test_interrupts() to verify that the IRQ occurs. We also
- *                acknowledge IRQ 8 by setting STATUS_REG_C to ensure it can
- *                be called repeatedly.
+ *   DESCRIPTION: Handles the RTC interrupt request. Acknowledges the RTC
+ *                interrupt. We also acknowledge IRQ 8 by setting STATUS_REG_C
+ *                to ensure it can be called repeatedly.
  *   INPUTS: none
  *   OUTPUTS: none
  *   RETURN VALUE: none
@@ -62,7 +61,7 @@ rtc_interrupt_handler(void)
 {
     disable_irq(RTC_IRQ);
 
-    /* test_interrupts(); */
+    /* acknowledge the interrupt */
     rtc_interrupt_occurred = 1;
 
     /* this is to ensure Register C is read after IRQ 8 */
@@ -72,6 +71,7 @@ rtc_interrupt_handler(void)
     send_eoi(RTC_IRQ);
     enable_irq(RTC_IRQ);
 }
+
 
 /*
  * rtc_read
@@ -86,11 +86,13 @@ rtc_interrupt_handler(void)
 int32_t
 rtc_read(int32_t fd, void* buf, int32_t nbytes)
 {
+    /* spin while interrupt has not occurred */
     while(!rtc_interrupt_occurred);
 
     rtc_interrupt_occurred = 0;
     return 0;
 }
+
 
 /*
  * rtc_write
@@ -107,31 +109,32 @@ rtc_read(int32_t fd, void* buf, int32_t nbytes)
 int32_t
 rtc_write(int32_t fd, const void* buf, int32_t nbytes)
 {
-    uint8_t set_divider;
+    uint8_t set_divider, count;
     uint32_t freq;
-    uint8_t count;
     char prev_saved;
 
     if(nbytes != 4)
         return -1;
 
     memcpy(&freq, buf, sizeof(uint32_t));
-    
-    count = 0;
-    
+
     /* set register STATUS_REG_A */
     outb(STATUS_REG_A, RTC_PORT1);
     prev_saved = inb(RTC_PORT2);
 
+    /* if frequency is out of range, return failed */
     if(freq <= 0 || freq >= 1024)
         return -1;
 
+    count = 0;
+
+    /* compute the frequency from the given input */
     while(freq != 1)
     {
         if(freq % 2 != 0)
             return -1;
         
-        freq = freq/2;
+        freq = freq / 2;
         count++;
     }
     
@@ -144,9 +147,10 @@ rtc_write(int32_t fd, const void* buf, int32_t nbytes)
     return 0;
 }
 
+
 /*
  * rtc_open
- *   DESCRIPTION: Currently, does nothing
+ *   DESCRIPTION: Initializes the RTC
  *   INPUTS: filename - ignored
  *   OUTPUTS: none
  *   RETURN VALUE: 0
@@ -155,12 +159,14 @@ rtc_write(int32_t fd, const void* buf, int32_t nbytes)
 int32_t
 rtc_open(const uint8_t* filename)
 {
+    rtc_init();
     return 0;
 }
 
+
 /*
  * rtc_close
- *   DESCRIPTION: Currently, does nothing
+ *   DESCRIPTION: Currently does nothing
  *   INPUTS: fd - ignored
  *   OUTPUTS: none
  *   RETURN VALUE: 0
