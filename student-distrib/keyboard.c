@@ -323,7 +323,7 @@ check_modifier_keys(uint8_t scan1, uint8_t scan2)
         l_ctrl = 0;
         return 1;
     }
-    
+
     if (scan1 == CTRL_PRESSED && scan2 == EXTENSION)
     {
         r_ctrl = 1;
@@ -424,7 +424,7 @@ check_control_codes(uint8_t scan1)
  *   RETURN VALUE: none
  *   SIDE EFFECTS: Puts the character in the input buffer and on the screen
  */
-void 
+void
 print_character(uint8_t scan1)
 {
     /* The following implementation is to handle other keys and cases */

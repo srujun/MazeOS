@@ -133,11 +133,11 @@ rtc_write(int32_t fd, const void* buf, int32_t nbytes)
     {
         if(freq % 2 != 0)
             return -1;
-        
+
         freq = freq / 2;
         count++;
     }
-    
+
     set_divider = DIVIDER_SETTING_CEIL - count;
 
     outb(STATUS_REG_A, RTC_PORT1);
