@@ -175,7 +175,7 @@ command_list(const uint8_t * params, uint32_t paramsize)
  *   INPUTS: params - the string of parameters
  *           paramsize - the length of the params
  *   OUTPUTS: none
- *   RETURN VALUE: 0 - success, >0 - failed
+ *   RETURN VALUE: 0 - success, -1 - failed
  *   SIDE EFFECTS: Prints file contents to the screen
  */
 int
@@ -196,7 +196,7 @@ command_cat(const uint8_t * params, uint32_t paramsize)
     if (-1 == (fd = fs_open(params)))
     {
         terminal_write(1, nofile, strlen((int8_t *)nofile));
-        return 2;
+        return -1;
     }
 
     fs_desc_t fd_file;
@@ -209,7 +209,7 @@ command_cat(const uint8_t * params, uint32_t paramsize)
     if (0 == cnt)
     {
         terminal_write(1, read_failed, strlen((int8_t *)read_failed));
-        return 3;
+        return -1;
     }
     terminal_write(1, buf, cnt);
     putc('\n');
@@ -231,7 +231,7 @@ int
 command_rtc(const uint8_t * params, uint32_t paramsize)
 {
     uint8_t buf[MAX_BUFFER_SIZE];
-    uint32_t freq = 2;
+    uint32_t freq = RTC_MIN_FREQ;
     // rtc_write(0, &freq, sizeof(uint32_t));
     clear_setpos(0, 0);
 
@@ -247,7 +247,7 @@ command_rtc(const uint8_t * params, uint32_t paramsize)
             putc('\n');
             get_kb_buffer(buf);
             /* reset to the previous frequency */
-            freq = 2;
+            freq = RTC_MIN_FREQ;
             rtc_write(0, &freq, sizeof(uint32_t));
             return 0;
         }
@@ -257,8 +257,8 @@ command_rtc(const uint8_t * params, uint32_t paramsize)
         {
             clear_setpos(0, 0);
             freq *= 2;
-            if (freq > 1024)
-                freq = 2;
+            if (freq > RTC_MAX_FREQ)
+                freq = RTC_MIN_FREQ;
             rtc_write(0, &freq, sizeof(uint32_t));
         }
 
