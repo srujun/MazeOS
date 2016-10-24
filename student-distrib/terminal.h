@@ -1,6 +1,7 @@
 /*
- * keyboard.h
- * Declares the initialization and interrupt handling functions for the Keyboard
+ * terminal.h
+ * Declares the initialization and interrupt handling functions
+ * for the terminal driver
  */
 
 #ifndef TERMINAL_H

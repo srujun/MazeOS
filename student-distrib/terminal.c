@@ -1,7 +1,7 @@
 /*
- * keyboard.c
+ * terminal.c
  * Definitions of the functions that initialize and handle
- * the keyboard interrupts
+ * the terminal driver functions
  */
 
 #include "lib.h"
@@ -12,10 +12,10 @@
 
 /*
  * terminal_open
- *   DESCRIPTION: Initializes the keyboard and local variables
+ *   DESCRIPTION: Initializes the terminal and clears the screen
  *   INPUTS: filename (not used)
- *   OUTPUTS: int32_t
- *   RETURN VALUE: zero signifying success
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0 - success
  *   SIDE EFFECTS: clears screen and sets cursor to the start of screen
  */
 int32_t
@@ -27,9 +27,9 @@ terminal_open(const uint8_t* filename)
 
 /*
  * terminal_close
- *   DESCRIPTION: Initializes the keyboard and local variables
+ *   DESCRIPTION: Currently does nothing
  *   INPUTS: fds (not used)
- *   OUTPUTS: int32_t
+ *   OUTPUTS: none
  *   RETURN VALUE: zero signifying success
  *   SIDE EFFECTS: none
  */
@@ -41,29 +41,33 @@ terminal_close(int32_t fd)
 
 /*
  * terminal_read
- *   DESCRIPTION: Initializes the keyboard and local variables
- *   INPUTS: fd, buf, nbytes
- *   OUTPUTS: int32_t
- *   RETURN VALUE: zero signifying success
- *   SIDE EFFECTS: none
+ *   DESCRIPTION: Gets a copy of the current keyboard input buffer
+ *   INPUTS: fd - unused (0),
+ *           buf - buffer to copy data into,
+ *           nbytes - number of bytes to copy (unused)
+ *   OUTPUTS: none
+ *   RETURN VALUE: The number of bytes in the keyboard input buffer
+ *   SIDE EFFECTS: keyboard input is acknowledged if control code
+ *                 is present
  */
 int32_t
 terminal_read(int32_t fd, void* buf, int32_t nbytes)
 {
-    return 0;
+    get_kb_buffer(buf);
+    return MAX_BUFFER_SIZE;
 }
 
 
 /*
  * terminal_write
  *   DESCRIPTION: Writes to screen all characters passed in via
- *                the buf input, handles cases such as backspace
- *                and enter, moves to the next line when needed,
- *                and implements scrolling downwards as needed
- *   INPUTS: fd, buf, nbytes
- *   OUTPUTS: int32_t
+ *                the buf input
+ *   INPUTS: fd - unused (1),
+ *           buf - buffer to print to screen,
+ *           nbytes - number of bytes in buffer
+ *   OUTPUTS: none
  *   RETURN VALUE: zero signifying success
- *   SIDE EFFECTS: Prints the character to the screen
+ *   SIDE EFFECTS: Prints the buffer to the screen
  */
 int32_t
 terminal_write(int32_t fd, const void* buf, int32_t nbytes)
@@ -73,8 +77,6 @@ terminal_write(int32_t fd, const void* buf, int32_t nbytes)
     int i;
     for(i = 0; i < nbytes; i++)
     {
-        if(*(uint8_t*)buf == '\0')
-            break;
         putc(*(uint8_t*)buf);
         buf++;
     }
