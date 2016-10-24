@@ -41,7 +41,7 @@ terminal_close(int32_t fd)
 
 /*
  * terminal_read
- *   DESCRIPTION: Initializes the keyboard and local variables
+ *   DESCRIPTION: TODO
  *   INPUTS: fd, buf, nbytes
  *   OUTPUTS: int32_t
  *   RETURN VALUE: zero signifying success
@@ -50,7 +50,8 @@ terminal_close(int32_t fd)
 int32_t
 terminal_read(int32_t fd, void* buf, int32_t nbytes)
 {
-    return 0;
+    get_kb_buffer(buf);
+    return MAX_BUFFER_SIZE;
 }
 
 
@@ -73,8 +74,6 @@ terminal_write(int32_t fd, const void* buf, int32_t nbytes)
     int i;
     for(i = 0; i < nbytes; i++)
     {
-        if(*(uint8_t*)buf == '\0')
-            break;
         putc(*(uint8_t*)buf);
         buf++;
     }
