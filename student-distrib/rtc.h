@@ -28,6 +28,10 @@
 #define DIVIDER_SETTING_CEIL 16
 #define DIVIDER_SETTING 	 15
 
+#define RTC_MAX_FREQ        1024
+#define RTC_MIN_FREQ        2
+
+
 /* Externally visible functions */
 
 void rtc_init(void);

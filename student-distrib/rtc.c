@@ -123,7 +123,7 @@ rtc_write(int32_t fd, const void* buf, int32_t nbytes)
     prev_saved = inb(RTC_PORT2);
 
     /* if frequency is out of range, return failed */
-    if(freq <= 0 || freq >= 1024)
+    if(freq < RTC_MIN_FREQ || freq > RTC_MAX_FREQ)
         return -1;
 
     count = 0;
