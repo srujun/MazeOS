@@ -89,7 +89,7 @@ fs_close(int32_t fd)
 /*
  * fs_read
  *   DESCRIPTION: Reads the bytes of a given file based on the file descriptor
- *   INPUTS: fd - pointer to a fs_desc_t object,
+ *   INPUTS: fd - pointer to a file_desc_t object,
  *           buf - the buffer to put the bytes into
  *           nbytes - the number of bytes to read
  *   OUTPUTS: none
@@ -100,10 +100,10 @@ int32_t
 fs_read(int32_t fd, void* buf, int32_t nbytes)
 {
     void * fdp = (void *) fd;
-    fs_desc_t fd_file;
+    file_desc_t fd_file;
 
     memset(fd_file.filename, '\0', FILENAME_SIZE + 1);
-    memcpy(&fd_file, fdp, sizeof(fs_desc_t));
+    memcpy(&fd_file, fdp, sizeof(file_desc_t));
 
     if (fd_file.index >= 0)
     {

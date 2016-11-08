@@ -24,11 +24,19 @@ typedef struct inode {
     uint32_t data_blocks[MAX_DATA_BLOCK_COUNT];
 } inode_t;
 
-/* Temporary for checkpoint 2 */
-typedef struct fs_desc {
-    int32_t index;
-    uint8_t filename[FILENAME_SIZE + 1];
-} fs_desc_t;
+typedef struct file_ops {
+    int32_t (*open) (const uint8_t *);
+    int32_t (*close) (int32_t);
+    int32_t (*read) (int32_t, void *, int32_t);
+    int32_t (*write) (int32_t, const void *, int32_t);
+} file_ops_t;
+
+typedef struct file_desc {
+    file_ops_t * file_ops;
+    inode_t * inode;
+    uint32_t pos;
+    uint32_t flags;
+} file_desc_t;
 
 /* Externally visible functions */
 
