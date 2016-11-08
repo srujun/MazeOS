@@ -7,6 +7,8 @@
 #define FILENAME_SIZE         32
 #define MAX_DATA_BLOCK_COUNT  63
 
+#define MAX_OPEN_FILES        8
+
 typedef struct dentry {
     char filename[FILENAME_SIZE + 1];
     uint32_t filetype;

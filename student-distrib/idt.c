@@ -96,7 +96,7 @@ initialize_idt() {
         else if (i == SYSTEM_CALL)
         {
             idt[i].dpl = INT_GATE_USER;
-            SET_IDT_ENTRY(idt[i], &system_call_handler);
+            SET_IDT_ENTRY(idt[i], &syscall_handler);
         }
         /* other vectors */
         else
@@ -141,21 +141,5 @@ initialize_idt() {
 void
 generic_interrupt_handler() {
     printf("Generic handler called!\n");
-    return;
-}
-
-
-/*
- * system_call_handler
- *   DESCRIPTION: Handles unimplemented System Call
- *   INPUTS: none
- *   OUTPUTS: none
- *   RETURN VALUE: none
- *   SIDE EFFECTS: none
- */
-void
-system_call_handler()
-{
-    printf("System Call!\n");
     return;
 }
