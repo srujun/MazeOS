@@ -29,7 +29,7 @@ typedef struct pcb {
     uint32_t pde;
     uint16_t pde_idx;
 
-    file_desc_t * fds[MAX_OPEN_FILES];
+    file_desc_t fds[MAX_OPEN_FILES];
 
     pcb_t * parent;
 } pcb_t;

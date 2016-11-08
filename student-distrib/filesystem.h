@@ -1,4 +1,5 @@
 /* filesystem.h - Defines the Read-Only file system functions */
+
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
 
@@ -8,6 +9,10 @@
 #define MAX_DATA_BLOCK_COUNT  63
 
 #define MAX_OPEN_FILES        8
+
+#define RTC_FILE_TYPE         0
+#define DIR_FILE_TYPE         1
+#define NORMAL_FILE_TYPE      2
 
 typedef struct dentry {
     char filename[FILENAME_SIZE + 1];
@@ -44,6 +49,7 @@ typedef struct file_desc {
 
 void fs_init(void * start_addr, void * end_addr);
 int32_t get_file_size(dentry_t * d);
+inode_t* get_inode_ptr(uint32_t inode);
 
 int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry);
 int32_t read_dentry_by_index(uint32_t index, dentry_t* dentry);
@@ -53,5 +59,7 @@ int32_t fs_open(const uint8_t* filename);
 int32_t fs_close(int32_t fd);
 int32_t fs_read(int32_t fd, void* buf, int32_t nbytes);
 int32_t fs_write(int32_t fd, const void* buf, int32_t nbytes);
+
+file_ops_t fs_ops = {fs_open, fs_close, fs_read, fs_write};
 
 #endif /* FILESYSTEM_H */

@@ -3,6 +3,10 @@
  */
 
 #include "syscalls.h"
+#include "../process.h"
+#include "../lib.h"
+#include "../filesystem.h"
+#include "../rtc.h"
 
 
 /*
@@ -76,7 +80,51 @@ write(int32_t fd, const void * buf, int32_t nbytes)
 int32_t
 open(const uint8_t * filename)
 {
-    
+    dentry_t d;
+    pcb_t * pcb;
+
+    if (-1 != read_dentry_by_name(filename, &d))
+    {
+        pcb = get_pcb();
+        int i = 2;
+        while(pcb->fds[i].file_ops != NULL)
+            i++;
+        if (i >= MAX_OPEN_FILES)
+            /* no available file descriptor */
+            return -1;
+
+        file_desc_t fd;
+        fd.pos = 0;
+        fd.flags = 0;
+
+        if (d.filetype == RTC_FILE_TYPE)
+        {
+            if (0 != rtc_open(filename))
+                return -1;
+            fd.inode = NULL;
+            fd.file_ops = &rtc_ops;
+            memcpy(pcb->fds + i, &fd, sizeof(file_desc_t));
+            return i;
+        }
+        else if (d.filetype == DIR_FILE_TYPE)
+        {
+            if (0 != fs_open(filename))
+                return -1;
+            fd.inode = NULL;
+            fd.file_ops = &fs_ops;
+            memcpy(pcb->fds + i, &fd, sizeof(file_desc_t));
+            return i;
+        }
+        else if (d.filetype == NORMAL_FILE_TYPE)
+        {
+            fd.inode = get_inode_ptr(d.inode);
+            fd.file_ops = &fs_ops;
+            memcpy(pcb->fds + i, &fd, sizeof(file_desc_t));
+            return i;
+        }
+        else
+            return -1;
+    }
 }
 
 
@@ -91,5 +139,18 @@ open(const uint8_t * filename)
 int32_t
 close(int32_t fd)
 {
-    
+    if (fd < 2 || fd >= MAX_OPEN_FILES)
+        return -1;
+
+    pcb_t * pcb = get_pcb();
+    if (pcb->fds[fd].file_ops != NULL)
+    {
+        if (0 != pcb->fds[fd].file_ops->close())
+        {
+            pcb->fds[fd].file_ops = NULL;
+            return 0;
+        }
+    }
+
+    return -1;
 }

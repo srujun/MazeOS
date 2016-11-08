@@ -46,4 +46,6 @@ int32_t rtc_open(const uint8_t* filename);
 
 int32_t rtc_close(int32_t fd);
 
+file_ops_t rtc_ops = {rtc_open, rtc_close, rtc_read, rtc_write};
+
 #endif /* RTC_H */

@@ -55,6 +55,21 @@ get_file_size(dentry_t * d)
 
 
 /*
+ * get_inode_ptr
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
+ */
+inode_t *
+get_inode_ptr(uint32_t inode)
+{
+    return (inode_t*)((inode + 1) * BLOCK_SIZE + fs_start_addr);
+}
+
+
+/*
  * fs_open
  *   DESCRIPTION: Checks if the file exists in the filesystem
  *   INPUTS: filename - the name of the file to open
