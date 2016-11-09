@@ -58,10 +58,12 @@ read(int32_t fd, void * buf, int32_t nbytes)
 
     file_desc_t fd_file = get_pcb()->fds[fd];
 
-    if(fd_file.file_ops == NULL)
-        return -1;
-
-    return fd_file.file_ops->read(fd, buf, nbytes);
+    if(fd_file.file_ops != NULL)
+    {
+        if (fd_file.file_ops->read != NULL)
+            return fd_file.file_ops->read(fd, buf, nbytes);
+    }
+    return -1;
 }
 
 
@@ -76,7 +78,20 @@ read(int32_t fd, void * buf, int32_t nbytes)
 int32_t
 write(int32_t fd, const void * buf, int32_t nbytes)
 {
-    
+    if(fd < 0 || fd >= MAX_OPEN_FILES)
+        return -1;
+
+    if(buf == NULL)
+        return -1;
+
+    file_desc_t fd_file = get_pcb()->fds[fd];
+
+    if(fd_file.file_ops != NULL)
+    {
+        if (fd_file.file_ops->write != NULL)
+            return fd_file.file_ops->write(fd, buf, nbytes);
+    }
+    return -1;
 }
 
 
