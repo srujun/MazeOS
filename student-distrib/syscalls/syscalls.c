@@ -50,7 +50,18 @@ execute(const uint8_t * command)
 int32_t
 read(int32_t fd, void * buf, int32_t nbytes)
 {
-    
+    if(fd < 0 || fd >= MAX_OPEN_FILES)
+        return -1;
+
+    if(buf == NULL)
+        return -1;
+
+    file_desc_t fd_file = get_pcb()->fds[fd];
+
+    if(fd_file.file_ops == NULL)
+        return -1;
+
+    return fd_file.file_ops->read(fd, buf, nbytes);
 }
 
 
@@ -95,7 +106,7 @@ open(const uint8_t * filename)
 
         file_desc_t fd;
         fd.pos = 0;
-        fd.flags = 0;
+        fd.flags = d.filetype & FILE_TYPE_MASK;
 
         if (d.filetype == RTC_FILE_TYPE)
         {
@@ -113,6 +124,7 @@ open(const uint8_t * filename)
             fd.inode = NULL;
             fd.file_ops = &fs_ops;
             memcpy(pcb->fds + i, &fd, sizeof(file_desc_t));
+
             return i;
         }
         else if (d.filetype == NORMAL_FILE_TYPE)

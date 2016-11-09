@@ -2,6 +2,7 @@
 
 #include "filesystem.h"
 #include "lib.h"
+#include "process.h"
 
 #define DENTRY_SIZE      64
 #define BLOCK_SIZE       4096
@@ -68,6 +69,19 @@ get_inode_ptr(uint32_t inode)
     return (inode_t*)((inode + 1) * BLOCK_SIZE + fs_start_addr);
 }
 
+/*
+ * get_inode_from_ptr
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
+ */
+uint32_t
+get_inode_from_ptr(inode_t * inode_ptr)
+{
+    return (uint32_t)((inode_ptr - fs_start_addr)/BLOCK_SIZE - 1);
+}
 
 /*
  * fs_open
@@ -114,62 +128,40 @@ fs_close(int32_t fd)
 int32_t
 fs_read(int32_t fd, void* buf, int32_t nbytes)
 {
-    void * fdp = (void *) fd;
-    file_desc_t fd_file;
+    file_desc_t fd_file = get_pcb()->fds[fd];
+    uint32_t inode = get_inode_from_ptr(fd_file.inode);
 
-    memset(fd_file.filename, '\0', FILENAME_SIZE + 1);
-    memcpy(&fd_file, fdp, sizeof(file_desc_t));
-
-    if (fd_file.index >= 0)
+    /* read directory */
+    if (fd_file.flags & FILE_TYPE_MASK == DIR_FILE_TYPE)
     {
-        /* read by the given index */
         dentry_t d;
-        if (!read_dentry_by_index(fd_file.index, &d))
+        if (!read_dentry_by_index(fd_file.pos, &d))
         {
-            int32_t bytes_read = read_data(d.inode, 0, buf, nbytes);
-            if(bytes_read == -1)
-                return 0;
-
-            return bytes_read;
+            get_pcb()->fds[fd].pos++;
+            if(nbytes <= FILENAME_SIZE)
+            {
+                memcpy(buf, d.filename, nbytes);
+                return nbytes;
+            }
+            else
+            {
+                memcpy(buf, d.filename, FILENAME_SIZE + 1);
+                return FILENAME_SIZE + 1;
+            }
         }
         /* read_dentry_by_index failed */
         return 0;
     }
-    else
+    else if(fd_file.flags & FILE_TYPE_MASK == NORMAL_FILE_TYPE)
     {
-        /* we have to read by filename */
-        dentry_t d;
-        int32_t suc = read_dentry_by_name(fd_file.filename, &d);
-
-        /* directory by index */
-        if (!suc && d.filetype == TYPE_DIRECTORY)
-        {
-            dentry_t f;
-            if (!read_dentry_by_index(f_idx, &f))
-            {
-                f_idx++;
-                int32_t bytes_read = read_data(f.inode, 0, buf, nbytes);
-                if(bytes_read == -1)
-                    return 0;
-
-                return bytes_read;
-            }
-            /* read_dentry_by_index failed */
+        int32_t bytes_read = read_data(inode, fd_file.pos, buf, nbytes);
+        if(bytes_read == -1)
             return 0;
-        }
-        /* read file contents, input was NOT directory */
-        else if (!suc)
-        {
-            int32_t bytes_read = read_data(d.inode, 0, buf, nbytes);
-            if(bytes_read == -1)
-                return 0;
 
-            return bytes_read;
-        }
-        /* read failed */
-        return 0;
+        get_pcb()->fds[fd].pos += bytes_read;
+        return bytes_read;
     }
-
+    /* Filetype is broken */
     return 0;
 }
 

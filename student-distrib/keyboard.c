@@ -211,8 +211,14 @@ keyboard_read(int32_t fd, void* buf, int32_t nbytes)
 
     ack = 0;
     disable_irq(KEYBOARD_IRQ);
-    memcpy(buf, buffer, buffer_size);
-    uint32_t size = buffer_size;
+    uint32_t size;
+
+    if(buffer_size < nbytes)
+        size = buffer_size;
+    else
+        size = nbytes;
+
+    memcpy(buf, buffer, size);
     memset(buffer, '\0', MAX_BUFFER_SIZE);
     buffer_size = 0;
     enable_irq(KEYBOARD_IRQ);
