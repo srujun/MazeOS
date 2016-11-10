@@ -58,7 +58,8 @@ read(int32_t fd, void * buf, int32_t nbytes)
 
     file_desc_t fd_file = get_pcb()->fds[fd];
 
-    if(fd_file.file_ops != NULL)
+    /* read only if file is in use */
+    if(fd_file.flags & FILE_USE_MASK == FILE_IN_USE)
     {
         if (fd_file.file_ops->read != NULL)
             return fd_file.file_ops->read(fd, buf, nbytes);
@@ -86,7 +87,8 @@ write(int32_t fd, const void * buf, int32_t nbytes)
 
     file_desc_t fd_file = get_pcb()->fds[fd];
 
-    if(fd_file.file_ops != NULL)
+    /* write only if file is in use */
+    if(fd_file.flags & FILE_USE_MASK == FILE_IN_USE)
     {
         if (fd_file.file_ops->write != NULL)
             return fd_file.file_ops->write(fd, buf, nbytes);
@@ -113,7 +115,8 @@ open(const uint8_t * filename)
     {
         pcb = get_pcb();
         int i = 2;
-        while(pcb->fds[i].file_ops != NULL)
+        /* find available fd */
+        while(pcb->fds[i].flags & FILE_USE_MASK != FILE_IN_USE)
             i++;
         if (i >= MAX_OPEN_FILES)
             /* no available file descriptor */
@@ -121,7 +124,7 @@ open(const uint8_t * filename)
 
         file_desc_t fd;
         fd.pos = 0;
-        fd.flags = d.filetype & FILE_TYPE_MASK;
+        fd.flags = (d.filetype << 1) & FILE_TYPE_MASK;
 
         if (d.filetype == RTC_FILE_TYPE)
         {
@@ -170,7 +173,9 @@ close(int32_t fd)
         return -1;
 
     pcb_t * pcb = get_pcb();
-    if (pcb->fds[fd].file_ops != NULL)
+
+    /* close only if file in use */
+    if (pcb->fds[fd].flags & FILE_USE_MASK == FILE_IN_USE)
     {
         if (0 != pcb->fds[fd].file_ops->close())
         {

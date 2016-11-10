@@ -4,17 +4,25 @@
 #define FILESYSTEM_H
 
 #include "types.h"
+#include "lib.h"
 
-#define FILENAME_SIZE         32
-#define MAX_DATA_BLOCK_COUNT  63
+#define FILENAME_SIZE          32
+#define MAX_DATA_BLOCK_COUNT   63
+#define ELF_HEADER_SIZE        _4B
+#define ENTRYPOINT_OFFSET      24
 
-#define MAX_OPEN_FILES        8
+#define MAX_OPEN_FILES         8
 
-#define RTC_FILE_TYPE         0
-#define DIR_FILE_TYPE         1
-#define NORMAL_FILE_TYPE      2
+#define FILE_USE_MASK          0x1
+#define FILE_TYPE_MASK         0x6
 
-#define FILE_TYPE_MASK        3
+// File usage
+#define FILE_IN_USE            1
+
+// File types
+#define RTC_FILE_TYPE          0
+#define DIR_FILE_TYPE          1
+#define NORMAL_FILE_TYPE       2
 
 typedef struct dentry {
     char filename[FILENAME_SIZE + 1];
