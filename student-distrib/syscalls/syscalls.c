@@ -113,7 +113,7 @@ execute(const uint8_t * command)
     uint8_t args[ARGS_LENGTH];
     memset(filename, '\0', FILENAME_SIZE);
     memset(args, '\0', ARGS_LENGTH);
-    
+
     uint16_t i, args_length = 0;
 
     /* get the filename */
@@ -211,7 +211,7 @@ execute(const uint8_t * command)
     load_addr = (void*)(_128MB + IMAGE_LOAD_OFFSET);
     copied = 0;
     bytes_read = 0;
-    
+
     while (0 != (copied = read_data(dentry.inode, bytes_read, load_addr, _1KB)))
     {
         load_addr += copied;
@@ -256,7 +256,7 @@ execute(const uint8_t * command)
         "movl %0, %%es       \n\t"
         "movl %0, %%fs       \n\t"
         "movl %0, %%gs       \n\t"
-    
+
         // push in order SS, ESP, EFLAGS, CS, EIP
         "pushl %0            \n\t"
         "pushl %1            \n\t"

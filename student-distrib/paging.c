@@ -78,7 +78,7 @@ init_paging(void)
 /*
  * TODO
  */
-void 
+void
 map_pde(uint32_t vir_addr, pde_t pde)
 {
     uint32_t pde_bytes;

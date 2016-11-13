@@ -42,8 +42,8 @@ INTEL_EXCEPTION(intel_exception_17, "EXCEPT 17: Alignment check exception");
 INTEL_EXCEPTION(intel_exception_18, "EXCEPT 18: Machine check exception");
 INTEL_EXCEPTION(intel_exception_19, "EXCEPT 19: SIMD Floating Point Exception");
 
-void intel_page_fault() 
-{ 
+void intel_page_fault()
+{
     uint32_t cr2;
     asm volatile (
         "movl  %%cr2, %%eax \n\t"
@@ -52,11 +52,11 @@ void intel_page_fault()
         :
         : "%eax"
     );
-    clear_setpos(5, 10); 
+    clear_setpos(5, 10);
     printf("INTEL EXCEPT 14: Page Fault\n");
     printf("CR2 %x\n", cr2);
-    while(1); 
-} 
+    while(1);
+}
 
 /*
  * initialize_idt
