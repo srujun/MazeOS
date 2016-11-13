@@ -8,6 +8,7 @@
 #define RTC_H
 
 #include "types.h"
+#include "filesystem.h"
 
 /* Used to specify an index or register number */
 #define RTC_PORT1          0x70
@@ -45,7 +46,5 @@ int32_t rtc_write(int32_t fd, const void* buf, int32_t nbytes);
 int32_t rtc_open(const uint8_t* filename);
 
 int32_t rtc_close(int32_t fd);
-
-file_ops_t rtc_ops = {rtc_open, rtc_close, rtc_read, rtc_write};
 
 #endif /* RTC_H */

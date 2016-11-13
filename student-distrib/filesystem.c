@@ -69,6 +69,7 @@ get_inode_ptr(uint32_t inode)
     return (inode_t*)((inode + 1) * BLOCK_SIZE + fs_start_addr);
 }
 
+
 /*
  * get_inode_from_ptr
  *   DESCRIPTION:
@@ -80,8 +81,46 @@ get_inode_ptr(uint32_t inode)
 uint32_t
 get_inode_from_ptr(inode_t * inode_ptr)
 {
-    return (uint32_t)((inode_ptr - fs_start_addr)/BLOCK_SIZE - 1);
+    return (uint32_t)(((void*)inode_ptr - fs_start_addr) / BLOCK_SIZE - 1);
 }
+
+
+/*
+ * get_elf_header
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
+ */
+int32_t
+get_elf_header(uint32_t inode)
+{
+    int32_t elf;
+    if (ELF_HEADER_SIZE != read_data(inode, 0, (void*)&elf, ELF_HEADER_SIZE))
+        return -1;
+    return elf;
+}
+
+
+/*
+ * get_elf_entrypoint
+ *   DESCRIPTION:
+ *   INPUTS:
+ *   OUTPUTS:
+ *   RETURN VALUE:
+ *   SIDE EFFECTS:
+ */
+void *
+get_elf_entrypoint(uint32_t inode)
+{
+    uint32_t start_addr;
+    if (sizeof(uint32_t) != read_data(inode, ENTRYPOINT_OFFSET,
+                                      (void*)&start_addr, sizeof(uint32_t)))
+        return NULL;
+    return (void *) start_addr;
+}
+
 
 /*
  * fs_open
@@ -132,7 +171,7 @@ fs_read(int32_t fd, void* buf, int32_t nbytes)
     uint32_t inode = get_inode_from_ptr(fd_file.inode);
 
     /* read directory */
-    if (fd_file.flags & FILE_TYPE_MASK == DIR_FILE_TYPE)
+    if ((fd_file.flags & FILE_TYPE_MASK) == DIR_FILE_TYPE)
     {
         dentry_t d;
         if (!read_dentry_by_index(fd_file.pos, &d))
@@ -152,7 +191,7 @@ fs_read(int32_t fd, void* buf, int32_t nbytes)
         /* read_dentry_by_index failed */
         return 0;
     }
-    else if(fd_file.flags & FILE_TYPE_MASK == NORMAL_FILE_TYPE)
+    else if((fd_file.flags & FILE_TYPE_MASK) == NORMAL_FILE_TYPE)
     {
         int32_t bytes_read = read_data(inode, fd_file.pos, buf, nbytes);
         if(bytes_read == -1)
@@ -300,7 +339,7 @@ read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length)
     memcpy(&(file_inode.length), inode_block_ptr, sizeof(uint32_t));
 
     /* if offset is greater than length, we cant read */
-    if (file_inode.length < offset)
+    if (file_inode.length <= offset)
         return 0;
 
     /* curb read length if we are being asked to read past the end of file */

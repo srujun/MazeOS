@@ -7,6 +7,13 @@
 
 #include "types.h"
 
+#define _4B               0x4
+#define _1KB              0x400
+#define _8KB              0x2000
+#define _4MB              0x400000
+#define _8MB              0x800000
+#define _128MB            0x8000000
+
 int32_t printf(int8_t *format, ...);
 void putc(uint8_t c);
 int32_t puts(int8_t *s);

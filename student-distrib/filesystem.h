@@ -61,6 +61,8 @@ void fs_init(void * start_addr, void * end_addr);
 int32_t get_file_size(dentry_t * d);
 inode_t* get_inode_ptr(uint32_t inode);
 uint32_t get_inode_from_ptr(inode_t * inode_ptr);
+int32_t get_elf_header(uint32_t inode);
+void * get_elf_entrypoint(uint32_t inode);
 
 int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry);
 int32_t read_dentry_by_index(uint32_t index, dentry_t* dentry);
@@ -70,7 +72,5 @@ int32_t fs_open(const uint8_t* filename);
 int32_t fs_close(int32_t fd);
 int32_t fs_read(int32_t fd, void* buf, int32_t nbytes);
 int32_t fs_write(int32_t fd, const void* buf, int32_t nbytes);
-
-file_ops_t fs_ops = {fs_open, fs_close, fs_read, fs_write};
 
 #endif /* FILESYSTEM_H */

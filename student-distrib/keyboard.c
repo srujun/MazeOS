@@ -164,6 +164,7 @@ keyboard_interrupt_handler()
         if(c == ENTER_KEYCODE)
         {
             buffer[buffer_size] = '\n';
+            buffer_size++;
             ack = 1;
             putc('\n');
             send_eoi(KEYBOARD_IRQ);

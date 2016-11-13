@@ -8,16 +8,10 @@
 #include "../types.h"
 #include "../filesystem.h"
 
-#define SYS_HALT         1
-#define SYS_EXECUTE      2
-#define SYS_READ         3
-#define SYS_WRITE        4
-#define SYS_OPEN         5
-#define SYS_CLOSE        6
-#define SYS_GETARGS      7
-#define SYS_VIDMAP       8
-#define SYS_SET_HANDLER  9
-#define SYS_SIGRETURN    10
+#define ELF_HEADER             0x464C457F
+#define BASE_ADDR_4MB_OFFSET   22
+#define IMAGE_LOAD_OFFSET      0x48000
+
 #define SYS_HALT               1
 #define SYS_EXECUTE            2
 #define SYS_READ               3
@@ -28,21 +22,6 @@
 #define SYS_VIDMAP             8
 #define SYS_SET_HANDLER        9
 #define SYS_SIGRETURN          10
-
-typedef struct pcb {
-    uint16_t pid;
-
-    uint32_t esp;
-    uint32_t ebp;
-    uint32_t k_esp;
-
-    uint32_t pde;
-    uint16_t pde_idx;
-
-    file_desc_t fds[MAX_OPEN_FILES];
-
-    pcb_t * parent;
-} pcb_t;
 
 /* External functions */
 extern int32_t syscall_handler();

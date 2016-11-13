@@ -175,5 +175,7 @@ rtc_open(const uint8_t* filename)
 int32_t
 rtc_close(int32_t fd)
 {
+    disable_irq(RTC_IRQ);
+    rtc_init();
     return 0;
 }
