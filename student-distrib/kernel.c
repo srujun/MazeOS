@@ -11,7 +11,6 @@
 #include "paging.h"
 #include "rtc.h"
 #include "keyboard.h"
-// #include "shell.h"
 #include "filesystem.h"
 #include "syscalls/syscalls.h"
 
@@ -194,7 +193,6 @@ entry (unsigned long magic, unsigned long addr)
     fs_init((void *)fs_start_addr, (void *)fs_end_addr);
 
 	/* Execute the first program (`shell') ... */
-    // shell_loop();
     execute((uint8_t*)"shell");
 
     /* Test Page Fault */
