@@ -424,8 +424,9 @@ close(int32_t fd)
     /* close only if file in use */
     if ((pcb->fds[fd].flags & FILE_USE_MASK) == FILE_IN_USE)
     {
-        if (0 != pcb->fds[fd].file_ops->close(fd))
+        if (0 == pcb->fds[fd].file_ops->close(fd))
         {
+            pcb->fds[fd].flags = FILE_NOT_IN_USE;
             pcb->fds[fd].file_ops = NULL;
             return 0;
         }

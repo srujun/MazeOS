@@ -18,6 +18,7 @@
 
 // File usage
 #define FILE_IN_USE            1
+#define FILE_NOT_IN_USE        0
 
 // File types
 #define RTC_FILE_TYPE          0
