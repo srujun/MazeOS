@@ -3,6 +3,7 @@
  */
 
 #include "idt.h"
+#include "syscalls/syscalls.h"
 #include "rtc.h"
 #include "keyboard.h"
 #include "i8259.h"
@@ -34,13 +35,28 @@ INTEL_EXCEPTION(intel_exception_10, "EXCEPT 10: Invalid TSS");
 INTEL_EXCEPTION(intel_exception_11, "EXCEPT 11: Segment not present");
 INTEL_EXCEPTION(intel_exception_12, "EXCEPT 12: Stack fault");
 INTEL_EXCEPTION(intel_exception_13, "EXCEPT 13: General protection exception");
-INTEL_EXCEPTION(intel_exception_14, "EXCEPT 14: Page fault");
+// INTEL_EXCEPTION(intel_exception_14, "EXCEPT 14: Page fault");
 /* 15 is Intel reserved */
 INTEL_EXCEPTION(intel_exception_16, "EXCEPT 16: FPU Floating Point Error");
 INTEL_EXCEPTION(intel_exception_17, "EXCEPT 17: Alignment check exception");
 INTEL_EXCEPTION(intel_exception_18, "EXCEPT 18: Machine check exception");
 INTEL_EXCEPTION(intel_exception_19, "EXCEPT 19: SIMD Floating Point Exception");
 
+void intel_page_fault()
+{
+    uint32_t cr2;
+    asm volatile (
+        "movl  %%cr2, %%eax \n\t"
+        "movl  %%eax, %0"
+        : "=r" (cr2)
+        :
+        : "%eax"
+    );
+    clear_setpos(5, 10);
+    printf("INTEL EXCEPT 14: Page Fault\n");
+    printf("CR2 %x\n", cr2);
+    while(1);
+}
 
 /*
  * initialize_idt
@@ -58,23 +74,23 @@ initialize_idt() {
     for (i = 0x0; i < NUM_VECTORS; i++)
     {
         idt[i].seg_selector = KERNEL_CS;
-        idt[i].reserved4    = INT_GATE_RESERVED_4;
+        idt[i].reserved4    = IDT_GATE_RESERVED_4;
         idt[i].reserved3    = INT_GATE_RESERVED_3;
-        idt[i].reserved2    = INT_GATE_RESERVED_2;
-        idt[i].reserved1    = INT_GATE_RESERVED_1;
-        idt[i].size         = INT_GATE_SIZE;
-        idt[i].reserved0    = INT_GATE_RESERVED_0;
-        idt[i].present      = INT_GATE_PRESENT;
+        idt[i].reserved2    = IDT_GATE_RESERVED_2;
+        idt[i].reserved1    = IDT_GATE_RESERVED_1;
+        idt[i].size         = IDT_GATE_SIZE;
+        idt[i].reserved0    = IDT_GATE_RESERVED_0;
+        idt[i].present      = IDT_GATE_PRESENT;
 
         /* Intel-defined exceptions */
         if (i >= INTEL_EXCEPTIONS_START && i <= INTEL_EXCEPTIONS_END)
         {
-            idt[i].dpl = INT_GATE_SUPERVISOR;
+            idt[i].dpl = IDT_GATE_SUPERVISOR;
         }
         /* 8259 PIC */
         else if (i >= PIC_IRQ_START && i <= PIC_IRQ_END)
         {
-            idt[i].dpl = INT_GATE_SUPERVISOR;
+            idt[i].dpl = IDT_GATE_SUPERVISOR;
 
             /* keyboard */
             if (i == PIC_IRQ_START + KEYBOARD_IRQ)
@@ -95,13 +111,14 @@ initialize_idt() {
         /* System call */
         else if (i == SYSTEM_CALL)
         {
-            idt[i].dpl = INT_GATE_USER;
-            SET_IDT_ENTRY(idt[i], &system_call_handler);
+            idt[i].dpl = IDT_GATE_USER;
+            idt[i].reserved3 = TRAP_GATE_RESERVED_3;
+            SET_IDT_ENTRY(idt[i], &syscall_handler);
         }
         /* other vectors */
         else
         {
-            idt[i].dpl = INT_GATE_SUPERVISOR;
+            idt[i].dpl = IDT_GATE_SUPERVISOR;
             SET_IDT_ENTRY(idt[i], &generic_interrupt_handler);
         }
     }
@@ -121,7 +138,8 @@ initialize_idt() {
     SET_IDT_ENTRY(idt[11], &intel_exception_11);
     SET_IDT_ENTRY(idt[12], &intel_exception_12);
     SET_IDT_ENTRY(idt[13], &intel_exception_13);
-    SET_IDT_ENTRY(idt[14], &intel_exception_14);
+    // SET_IDT_ENTRY(idt[14], &intel_exception_14);
+    SET_IDT_ENTRY(idt[14], &intel_page_fault);
     /* 15 is Intel reserved */
     SET_IDT_ENTRY(idt[16], &intel_exception_16);
     SET_IDT_ENTRY(idt[17], &intel_exception_17);
@@ -141,21 +159,5 @@ initialize_idt() {
 void
 generic_interrupt_handler() {
     printf("Generic handler called!\n");
-    return;
-}
-
-
-/*
- * system_call_handler
- *   DESCRIPTION: Handles unimplemented System Call
- *   INPUTS: none
- *   OUTPUTS: none
- *   RETURN VALUE: none
- *   SIDE EFFECTS: none
- */
-void
-system_call_handler()
-{
-    printf("System Call!\n");
     return;
 }

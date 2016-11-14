@@ -20,16 +20,18 @@
 
 #define SYSTEM_CALL              0x80
 
-#define INT_GATE_RESERVED_0      0
-#define INT_GATE_RESERVED_1      1
-#define INT_GATE_RESERVED_2      1
+#define IDT_GATE_RESERVED_0      0
+#define IDT_GATE_RESERVED_1      1
+#define IDT_GATE_RESERVED_2      1
+#define IDT_GATE_RESERVED_4      0
+#define IDT_GATE_SIZE            1
+#define IDT_GATE_SUPERVISOR      0
+#define IDT_GATE_USER            3
+#define IDT_GATE_PRESENT         1
+#define IDT_GATE_NOT_PRESENT     0
+
 #define INT_GATE_RESERVED_3      0
-#define INT_GATE_RESERVED_4      0
-#define INT_GATE_SIZE            1
-#define INT_GATE_SUPERVISOR      0
-#define INT_GATE_USER            3
-#define INT_GATE_PRESENT         1
-#define INT_GATE_NOT_PRESENT     0
+#define TRAP_GATE_RESERVED_3     1
 
 #define INTEL_EXCEPTION(handler_name,desc)            \
 void handler_name()                                   \

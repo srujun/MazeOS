@@ -53,8 +53,20 @@ terminal_close(int32_t fd)
 int32_t
 terminal_read(int32_t fd, void* buf, int32_t nbytes)
 {
-    get_kb_buffer(buf);
-    return MAX_BUFFER_SIZE;
+    // get_kb_buffer(buf);
+    // return MAX_BUFFER_SIZE;
+
+    int32_t bytes_read = keyboard_read(fd, buf, nbytes);
+
+    if (*((int8_t *)buf) == CTRL_L)
+    {
+        clear_setpos(0, 0);
+        /* clear the command buffer */
+        memset(buf, '\0', nbytes);
+        bytes_read = 0;
+    }
+
+    return bytes_read;
 }
 
 
@@ -83,5 +95,5 @@ terminal_write(int32_t fd, const void* buf, int32_t nbytes)
 
     enable_irq(KEYBOARD_IRQ);
 
-    return 0;
+    return nbytes;
 }

@@ -8,6 +8,7 @@
 #define RTC_H
 
 #include "types.h"
+#include "filesystem.h"
 
 /* Used to specify an index or register number */
 #define RTC_PORT1          0x70

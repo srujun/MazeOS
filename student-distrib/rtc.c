@@ -113,7 +113,7 @@ rtc_write(int32_t fd, const void* buf, int32_t nbytes)
     uint32_t freq;
     char prev_saved;
 
-    if(nbytes != 4)
+    if(nbytes != sizeof(uint32_t))
         return -1;
 
     memcpy(&freq, buf, sizeof(uint32_t));
@@ -144,7 +144,7 @@ rtc_write(int32_t fd, const void* buf, int32_t nbytes)
     /* write rate to STATUS_REG_A */
     outb((prev_saved & MASK_LOWER) | set_divider, RTC_PORT2);
 
-    return 0;
+    return sizeof(uint32_t);
 }
 
 
@@ -175,5 +175,7 @@ rtc_open(const uint8_t* filename)
 int32_t
 rtc_close(int32_t fd)
 {
+    disable_irq(RTC_IRQ);
+    rtc_init();
     return 0;
 }

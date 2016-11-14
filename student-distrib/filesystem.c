@@ -2,6 +2,7 @@
 
 #include "filesystem.h"
 #include "lib.h"
+#include "process.h"
 
 #define DENTRY_SIZE      64
 #define BLOCK_SIZE       4096
@@ -55,6 +56,74 @@ get_file_size(dentry_t * d)
 
 
 /*
+ * get_inode_ptr
+ *   DESCRIPTION: Returns a pointer to the inode block using the inode number
+ *   INPUTS: uint32_t inode
+ *   OUTPUTS: none
+ *   RETURN VALUE: the inode_t pointer
+ *   SIDE EFFECTS: none
+ */
+inode_t *
+get_inode_ptr(uint32_t inode)
+{
+    return (inode_t*)((inode + 1) * BLOCK_SIZE + fs_start_addr);
+}
+
+
+/*
+ * get_inode_from_ptr
+ *   DESCRIPTION: Returns the inode number using the inode pointer
+ *   INPUTS: inode_t inode pointer
+ *   OUTPUTS: none
+ *   RETURN VALUE: the inode number
+ *   SIDE EFFECTS: none
+ */
+uint32_t
+get_inode_from_ptr(inode_t * inode_ptr)
+{
+    return (uint32_t)(((void*)inode_ptr - fs_start_addr) / BLOCK_SIZE - 1);
+}
+
+
+/*
+ * get_elf_header
+ *   DESCRIPTION: Returns the 32 bit ELF header
+ *   INPUTS: The inode number of the file
+ *   OUTPUTS: none
+ *   RETURN VALUE: The 32 bit ELF header
+ *   SIDE EFFECTS: none
+ */
+int32_t
+get_elf_header(uint32_t inode)
+{
+    int32_t elf;
+    if (ELF_HEADER_SIZE != read_data(inode, 0, (void*)&elf, ELF_HEADER_SIZE))
+        return -1;
+    return elf;
+}
+
+
+/*
+ * get_elf_entrypoint
+ *   DESCRIPTION: Returns a pointer to the entrypoint of a loded file in memory
+ *                using the bytes 24-27 in the file
+ *   INPUTS: The inode number of the file
+ *   OUTPUTS: none
+ *   RETURN VALUE: Pointer in memory
+ *   SIDE EFFECTS: none
+ */
+void *
+get_elf_entrypoint(uint32_t inode)
+{
+    uint32_t start_addr;
+    if (sizeof(uint32_t) != read_data(inode, ENTRYPOINT_OFFSET,
+                                      (void*)&start_addr, sizeof(uint32_t)))
+        return NULL;
+    return (void *) start_addr;
+}
+
+
+/*
  * fs_open
  *   DESCRIPTION: Checks if the file exists in the filesystem
  *   INPUTS: filename - the name of the file to open
@@ -89,7 +158,7 @@ fs_close(int32_t fd)
 /*
  * fs_read
  *   DESCRIPTION: Reads the bytes of a given file based on the file descriptor
- *   INPUTS: fd - pointer to a file_desc_t object,
+ *   INPUTS: fd - the file descriptor number
  *           buf - the buffer to put the bytes into
  *           nbytes - the number of bytes to read
  *   OUTPUTS: none
@@ -99,62 +168,42 @@ fs_close(int32_t fd)
 int32_t
 fs_read(int32_t fd, void* buf, int32_t nbytes)
 {
-    void * fdp = (void *) fd;
-    file_desc_t fd_file;
+    file_desc_t fd_file = get_pcb()->fds[fd];
 
-    memset(fd_file.filename, '\0', FILENAME_SIZE + 1);
-    memcpy(&fd_file, fdp, sizeof(file_desc_t));
-
-    if (fd_file.index >= 0)
+    /* read directory */
+    if (((fd_file.flags & FILE_TYPE_MASK) >> 1) == DIR_FILE_TYPE)
     {
-        /* read by the given index */
         dentry_t d;
-        if (!read_dentry_by_index(fd_file.index, &d))
+        if (!read_dentry_by_index(fd_file.pos, &d))
         {
-            int32_t bytes_read = read_data(d.inode, 0, buf, nbytes);
-            if(bytes_read == -1)
-                return 0;
-
-            return bytes_read;
+            /* increment the position in the list of files in directory */
+            get_pcb()->fds[fd].pos++;
+            if(nbytes <= FILENAME_SIZE)
+            {
+                memcpy(buf, d.filename, nbytes);
+                return nbytes;
+            }
+            else
+            {
+                memcpy(buf, d.filename, FILENAME_SIZE + 1);
+                return FILENAME_SIZE + 1;
+            }
         }
         /* read_dentry_by_index failed */
         return 0;
     }
-    else
+    /* read file */
+    else if(((fd_file.flags & FILE_TYPE_MASK) >> 1) == NORMAL_FILE_TYPE)
     {
-        /* we have to read by filename */
-        dentry_t d;
-        int32_t suc = read_dentry_by_name(fd_file.filename, &d);
-
-        /* directory by index */
-        if (!suc && d.filetype == TYPE_DIRECTORY)
-        {
-            dentry_t f;
-            if (!read_dentry_by_index(f_idx, &f))
-            {
-                f_idx++;
-                int32_t bytes_read = read_data(f.inode, 0, buf, nbytes);
-                if(bytes_read == -1)
-                    return 0;
-
-                return bytes_read;
-            }
-            /* read_dentry_by_index failed */
+        uint32_t inode = get_inode_from_ptr(fd_file.inode);
+        int32_t bytes_read = read_data(inode, fd_file.pos, buf, nbytes);
+        if(bytes_read == -1)
             return 0;
-        }
-        /* read file contents, input was NOT directory */
-        else if (!suc)
-        {
-            int32_t bytes_read = read_data(d.inode, 0, buf, nbytes);
-            if(bytes_read == -1)
-                return 0;
 
-            return bytes_read;
-        }
-        /* read failed */
-        return 0;
+        get_pcb()->fds[fd].pos += bytes_read;
+        return bytes_read;
     }
-
+    /* Filetype is broken */
     return 0;
 }
 
@@ -164,13 +213,13 @@ fs_read(int32_t fd, void* buf, int32_t nbytes)
  *   DESCRIPTION: Unsupported
  *   INPUTS: fd, buf, nbytes
  *   OUTPUTS: none
- *   RETURN VALUE: 0
+ *   RETURN VALUE: -1 - unsuccessful
  *   SIDE EFFECTS: none
  */
 int32_t
 fs_write(int32_t fd, const void* buf, int32_t nbytes)
 {
-    return 0;
+    return -1;
 }
 
 
@@ -293,7 +342,7 @@ read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length)
     memcpy(&(file_inode.length), inode_block_ptr, sizeof(uint32_t));
 
     /* if offset is greater than length, we cant read */
-    if (file_inode.length < offset)
+    if (file_inode.length <= offset)
         return 0;
 
     /* curb read length if we are being asked to read past the end of file */

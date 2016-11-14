@@ -3,9 +3,11 @@
  */
 
 #include "paging.h"
+#include "lib.h"
 
 #define PAGE_COUNT         1024
 #define PAGE_ALIGN         4096
+#define SHIFT_4MB          22
 
 #define VIDEO_MEM_START    0xB8     // index of start of video memory
 #define VIDEO_MEM_PG_COUNT 8        // number of pages in video memory (32KB)
@@ -20,8 +22,8 @@
 
 
 /* Arrays to hold the Page Directory and the table for the first 4MB section */
-uint32_t page_directory[PAGE_COUNT] __attribute__((aligned(PAGE_ALIGN)));
-uint32_t first_4MB_table[PAGE_COUNT] __attribute__((aligned(PAGE_ALIGN)));
+static uint32_t page_directory[PAGE_COUNT] __attribute__((aligned(PAGE_ALIGN)));
+static uint32_t first_4MB_table[PAGE_COUNT] __attribute__((aligned(PAGE_ALIGN)));
 
 
 /*
@@ -70,4 +72,45 @@ init_paging(void)
     load_page_directory((uint32_t) page_directory);
     /* call the enabler */
     enable_paging();
+}
+
+
+/*
+ * map_pde
+ *   DESCRIPTION: Maps the given virtual address to the entry specified by
+ *                the given Page Directory Entry. Creates a 4MB page.
+ *   INPUTS: vir_addr - the virtual address within the page to map
+ *           pde - the entry to put into the Page Directory for this page
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Flushes the x86 TLBs
+ */
+void
+map_pde(uint32_t vir_addr, pde_t pde)
+{
+    uint32_t pde_bytes;
+    memcpy(&pde_bytes, &pde, sizeof(pde_t));
+    page_directory[(vir_addr >> SHIFT_4MB)] = pde_bytes;
+    flush_tlb();
+}
+
+
+/*
+ * flush_tlb
+ *   DESCRIPTION: Flushes the x86 TLBs
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+void
+flush_tlb()
+{
+    asm volatile(
+        "mov %%cr3, %%eax\n\t"
+        "mov %%eax, %%cr3"
+        :
+        :
+        : "%eax" // clobbers %eax
+    );
 }

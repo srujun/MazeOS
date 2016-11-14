@@ -7,10 +7,14 @@
 #ifndef TERMINAL_H
 #define TERMINAL_H
 
-#define NUM_COLS 80
-#define NUM_ROWS 25
+#define NUM_COLS     80
+#define NUM_ROWS     25
+
+#define STDIN        0
+#define STDOUT       1
 
 #include "types.h"
+#include "filesystem.h"
 
 /* Externally visible functions */
 
