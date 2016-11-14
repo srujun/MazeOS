@@ -168,10 +168,9 @@ int32_t
 fs_read(int32_t fd, void* buf, int32_t nbytes)
 {
     file_desc_t fd_file = get_pcb()->fds[fd];
-    uint32_t inode = get_inode_from_ptr(fd_file.inode);
 
     /* read directory */
-    if ((fd_file.flags & FILE_TYPE_MASK) == DIR_FILE_TYPE)
+    if (((fd_file.flags & FILE_TYPE_MASK) >> 1) == DIR_FILE_TYPE)
     {
         dentry_t d;
         if (!read_dentry_by_index(fd_file.pos, &d))
@@ -191,8 +190,9 @@ fs_read(int32_t fd, void* buf, int32_t nbytes)
         /* read_dentry_by_index failed */
         return 0;
     }
-    else if((fd_file.flags & FILE_TYPE_MASK) == NORMAL_FILE_TYPE)
+    else if(((fd_file.flags & FILE_TYPE_MASK) >> 1) == NORMAL_FILE_TYPE)
     {
+        uint32_t inode = get_inode_from_ptr(fd_file.inode);
         int32_t bytes_read = read_data(inode, fd_file.pos, buf, nbytes);
         if(bytes_read == -1)
             return 0;

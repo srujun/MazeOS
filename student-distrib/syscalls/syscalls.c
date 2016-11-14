@@ -44,30 +44,31 @@ halt(uint8_t status)
     if (0 != free_pid(pcb->pid))
         printf("Should not have printed!\n");
 
-    uint32_t k_esp, k_ebp;
+    uint32_t k_esp, k_ebp, esp0;
 
     if (pcb->pid == 1) // Main process
     {
-        k_ebp = k_esp = _8MB - _4B - (pcb->pid - 1) * _8KB;
+        esp0 = k_ebp = k_esp = _8MB - _4B - (pcb->pid - 1) * _8KB;
         clear_setpos(0, 0);
 
         /* restore paging by mapping parent's page in the page directory */
         map_pde(pcb->pde_virt_addr, pcb->pde);
         flush_tlb();
 
-        asm volatile (
-            "movl %0, %%esp      \n\t"
-            "movl %1, %%ebp      \n\t"
-            :
-            : "r" (k_esp), "r" (k_ebp)
-            : "%esp", "%ebp"
-        );
+        // asm volatile (
+        //     "movl %0, %%esp      \n\t"
+        //     // "movl %1, %%ebp      \n\t"
+        //     :
+        //     : "r" (k_esp)//, "r" (k_ebp)
+        //     : "%esp"//, "%ebp"
+        // );
         execute((uint8_t *)"shell");
     }
     else // halting a child process
     {
         k_esp = pcb->parent->k_esp;
         k_ebp = pcb->parent->k_ebp;
+        esp0 = pcb->parent->esp0;
 
         /* restore paging by mapping parent's page in the page directory */
         map_pde(pcb->parent->pde_virt_addr, pcb->parent->pde);
@@ -75,18 +76,18 @@ halt(uint8_t status)
     }
 
     /* restore parent data */
-    tss.esp0 = k_esp;
+    tss.esp0 = esp0;
 
     asm volatile (
         "movl %0, %%eax      \n\t"
         "movl %1, %%esp      \n\t"
-        "movl %2, %%ebp      \n\t"
+        // "movl %2, %%ebp      \n\t"
         "jmp BIG_FAT_RETURN"
         // "leave               \n\t"
         // "ret"
         :
-        : "r" ((uint32_t) status), "r" (k_esp), "r" (k_ebp)
-        : "%eax", "%esp", "%ebp"
+        : "r" ((uint32_t) status), "r" (k_esp)//, "r" (k_ebp)
+        : "%eax", "%esp"//, "%ebp"
     );
 
     /* should never happen */
@@ -105,6 +106,13 @@ halt(uint8_t status)
 int32_t
 execute(const uint8_t * command)
 {
+    uint32_t ret_kesp, ret_kebp;
+    asm volatile (
+        "movl %%esp, %0     \n\t"
+        "movl %%ebp, %1     \n\t"
+        : "=r" (ret_kesp), "=r" (ret_kebp)
+    );
+
     void* load_addr;
     uint32_t retval, copied, bytes_read;
 
@@ -119,11 +127,7 @@ execute(const uint8_t * command)
     /* get the filename */
     for(i = 0; command[i] != ' ' && command[i] != '\n' &&
                command[i] != '\0' && i < FILENAME_SIZE; i++)
-    {
         filename[i] = command[i];
-    }
-
-    i++; // i points to ' '
 
     /* remove leading spaces */
     for(; command[i] == ' '; i++);
@@ -136,9 +140,13 @@ execute(const uint8_t * command)
         args_length++;
     }
 
-    /* strip the trailing spaces */
-    for(--i; command[i] == ' '; i--)
-        args_length--;
+    if (args_length != 0)
+    {
+        /* strip the trailing spaces */
+        for(--i; command[i] == ' '; i--)
+            args_length--;
+        args[args_length] = '\0';
+    }
 
     /* check if filename is valid */
     dentry_t dentry;
@@ -161,8 +169,11 @@ execute(const uint8_t * command)
         return 0;
     }
 
-    /* put args into pcb */
-    memcpy(pcb.args, args, args_length);
+    memset(pcb.args, '\0', ARGS_LENGTH);
+    if (args_length != 0)
+        /* put args into pcb */
+        memcpy(pcb.args, args, args_length + 1);
+    pcb.args_length = args_length;
 
     /* create 4MB page for new process (either at 8MB or 12MB physical) */
     pcb.pde_virt_addr = _128MB;
@@ -196,11 +207,9 @@ execute(const uint8_t * command)
     {
         pcb.parent = get_pcb();
         /* IMPORTANT: store current esp value in pcb of parent */
-        asm volatile (
-            "movl %%esp, %0     \n\t"
-            "movl %%ebp, %1     \n\t"
-            : "=r" (pcb.parent->k_esp), "=r" (pcb.parent->k_ebp)
-        );
+        pcb.parent->k_esp = ret_kesp;
+        pcb.parent->k_ebp = ret_kebp;
+        printf("kesp %x | kebp %x\n", ret_kesp, ret_kebp);
     }
 
     /* map this page in the page directory */
@@ -356,11 +365,13 @@ open(const uint8_t * filename)
         pcb = get_pcb();
         int i = 2;
         /* find available fd */
-        while((pcb->fds[i].flags & FILE_USE_MASK) != FILE_IN_USE)
+        while((pcb->fds[i].flags & FILE_USE_MASK) == FILE_IN_USE)
+        {
             i++;
-        if (i >= MAX_OPEN_FILES)
-            /* no available file descriptor */
-            return -1;
+            if (i >= MAX_OPEN_FILES)
+                /* no available file descriptor */
+                return -1;
+        }
 
         file_desc_t fd;
         fd.pos = 0;
@@ -432,6 +443,12 @@ close(int32_t fd)
 
 int32_t getargs(uint8_t * buf, int32_t nbytes)
 {
+    pcb_t * pcb = get_pcb();
+
+    if (nbytes < pcb->args_length + 1)
+        return -1;
+
+    memcpy(buf, pcb->args, pcb->args_length + 1);
     return 0;
 }
 

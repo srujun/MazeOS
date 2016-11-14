@@ -13,6 +13,7 @@
 
 typedef struct pcb pcb_t;
 struct pcb {
+    uint32_t esp0;
     uint16_t pid;
 
     pde_t pde;
@@ -25,6 +26,7 @@ struct pcb {
 
     file_desc_t fds[MAX_OPEN_FILES];
     uint8_t args[ARGS_LENGTH];
+    uint32_t args_length;
 
     pcb_t * parent;
 };
