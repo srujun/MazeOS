@@ -95,5 +95,5 @@ terminal_write(int32_t fd, const void* buf, int32_t nbytes)
 
     enable_irq(KEYBOARD_IRQ);
 
-    return 0;
+    return nbytes;
 }

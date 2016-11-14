@@ -1,4 +1,4 @@
-/* process.h - TODO */
+/* process.h - Declaration of process functions */
 
 #ifndef PROCESS_H
 #define PROCESS_H

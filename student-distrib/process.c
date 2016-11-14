@@ -1,4 +1,4 @@
-/* process.c - TODO */
+/* process.c - Implementations of process functions */
 
 #include "process.h"
 #include "syscalls/syscalls.h"
@@ -7,7 +7,12 @@ static uint8_t available_pids[MAX_PROCESSES] = {0};
 
 
 /*
- * TODO: get_pcb
+ * get_pcb
+ *   DESCRIPTION: Get the address of the PCB for the current process in kmemory
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: Pointer to the pcb as a pcb_t
+ *   SIDE EFFECTS: none
  */
 pcb_t*
 get_pcb()
@@ -20,7 +25,13 @@ get_pcb()
 
 
 /*
- * TODO: get_available_pid
+ * get_available_pid
+ *   DESCRIPTION: Finds and sets an unused Process ID
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: The available PID number
+ *                 -1 if unavailable
+ *   SIDE EFFECTS: Sets that PID number to used
  */
 int32_t
 get_available_pid()
@@ -40,7 +51,13 @@ get_available_pid()
 
 
 /*
- * TODO: free_pid
+ * free_pid
+ *   DESCRIPTION: Marks a given PID to unused
+ *   INPUTS: The PID to mark
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0 - if successful
+ *                 -1 - if PID is already marked free
+ *   SIDE EFFECTS: none
  */
 int32_t
 free_pid(uint32_t pid)

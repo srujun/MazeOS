@@ -22,11 +22,11 @@ static file_ops_t stdout_ops = {terminal_open, terminal_close,
 
 /*
  * halt
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Halts the given process and returns back to parent process
+ *   INPUTS: status - The status returned from the user process
+ *   OUTPUTS: none
+ *   RETURN VALUE: never returns (jumps back to execute)
+ *   SIDE EFFECTS: Moves the Stack pointers back to parent process
  */
 int32_t
 halt(uint8_t status)
@@ -44,50 +44,39 @@ halt(uint8_t status)
     if (0 != free_pid(pcb->pid))
         printf("Should not have printed!\n");
 
-    uint32_t k_esp, k_ebp, esp0;
+    uint32_t k_esp, esp0;
 
     if (pcb->pid == 1) // Main process
     {
-        esp0 = k_ebp = k_esp = _8MB - _4B - (pcb->pid - 1) * _8KB;
+        esp0 = k_esp = _8MB - _4B - (pcb->pid - 1) * _8KB;
         clear_setpos(0, 0);
 
         /* restore paging by mapping parent's page in the page directory */
         map_pde(pcb->pde_virt_addr, pcb->pde);
-        flush_tlb();
 
-        // asm volatile (
-        //     "movl %0, %%esp      \n\t"
-        //     // "movl %1, %%ebp      \n\t"
-        //     :
-        //     : "r" (k_esp)//, "r" (k_ebp)
-        //     : "%esp"//, "%ebp"
-        // );
+        /* restart shell */
         execute((uint8_t *)"shell");
     }
     else // halting a child process
     {
         k_esp = pcb->parent->k_esp;
-        k_ebp = pcb->parent->k_ebp;
         esp0 = pcb->parent->esp0;
 
         /* restore paging by mapping parent's page in the page directory */
         map_pde(pcb->parent->pde_virt_addr, pcb->parent->pde);
-        flush_tlb();
     }
 
     /* restore parent data */
     tss.esp0 = esp0;
 
+    /* overwrite the stack pointers */
     asm volatile (
         "movl %0, %%eax      \n\t"
         "movl %1, %%esp      \n\t"
-        // "movl %2, %%ebp      \n\t"
         "jmp BIG_FAT_RETURN"
-        // "leave               \n\t"
-        // "ret"
         :
-        : "r" ((uint32_t) status), "r" (k_esp)//, "r" (k_ebp)
-        : "%eax", "%esp"//, "%ebp"
+        : "r" ((uint32_t) status), "r" (k_esp)
+        : "%eax", "%esp"
     );
 
     /* should never happen */
@@ -97,11 +86,13 @@ halt(uint8_t status)
 
 /*
  * execute
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Creates a new process, loads the executable into remapped
+ *                memory, creates the corresponding PCB in kernel memory, passes
+ *                execution to the user program.
+ *   INPUTS: command - the command to execute with arguments
+ *   OUTPUTS: none
+ *   RETURN VALUE: the status from the user process execution
+ *   SIDE EFFECTS: Sets up PCB and the TSS, and changes the Privilege Level
  */
 int32_t
 execute(const uint8_t * command)
@@ -209,12 +200,10 @@ execute(const uint8_t * command)
         /* IMPORTANT: store current esp value in pcb of parent */
         pcb.parent->k_esp = ret_kesp;
         pcb.parent->k_ebp = ret_kebp;
-        printf("kesp %x | kebp %x\n", ret_kesp, ret_kebp);
     }
 
     /* map this page in the page directory */
     map_pde(pcb.pde_virt_addr, pcb.pde);
-    flush_tlb();
 
     /* load the program into the 128MB virtual address with offset 0x48000 */
     load_addr = (void*)(_128MB + IMAGE_LOAD_OFFSET);
@@ -250,7 +239,7 @@ execute(const uint8_t * command)
     memcpy((void*)(pcb.k_esp & ESP_PCB_MASK), &pcb, sizeof(pcb_t));
 
     /* context switch -> write TSS values */
-    tss.esp0 = pcb.k_esp; //_8MB - (pcb.pid - 1) * _8KB;
+    tss.esp0 = pcb.k_esp;
     tss.ss0 = KERNEL_DS;
     // tss.ss0 does not need to be updated (remains KERNEL_DS)
 
@@ -290,11 +279,13 @@ execute(const uint8_t * command)
 
 /*
  * read
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Reads the bytes from the file descriptor
+ *   INPUTS: fd - the file descriptor number
+ *           buf - the buffer to put the bytes into
+ *           nbytes - the number of bytes to read
+ *   OUTPUTS: none
+ *   RETURN VALUE: the number of bytes actually read
+ *   SIDE EFFECTS: increments the offset in the file
  */
 int32_t
 read(int32_t fd, void * buf, int32_t nbytes)
@@ -319,11 +310,13 @@ read(int32_t fd, void * buf, int32_t nbytes)
 
 /*
  * write
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Wrties the buffer to the file descriptor (stdin, stdout, rtc)
+ *   INPUTS: fd - the file descriptor number
+ *           buf - the buffer to write the bytes from
+ *           nbytes - the number of bytes to read
+ *   OUTPUTS: none
+ *   RETURN VALUE: the number of bytes actually read
+ *   SIDE EFFECTS: increments the offset in the file
  */
 int32_t
 write(int32_t fd, const void * buf, int32_t nbytes)
@@ -348,11 +341,11 @@ write(int32_t fd, const void * buf, int32_t nbytes)
 
 /*
  * open
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Initializes a free file descriptor and returns the fd number
+ *   INPUTS: The filename to open
+ *   OUTPUTS: none
+ *   RETURN VALUE: the fd number
+ *   SIDE EFFECTS: Marks the file descriptor as in use
  */
 int32_t
 open(const uint8_t * filename)
@@ -413,11 +406,12 @@ open(const uint8_t * filename)
 
 /*
  * close
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Closes the given file descriptor
+ *   INPUTS: The file descriptor number
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0 - successful
+ *                 -1 - otherwise
+ *   SIDE EFFECTS: Marks the given file descriptor as not in use
  */
 int32_t
 close(int32_t fd)
@@ -441,7 +435,18 @@ close(int32_t fd)
 }
 
 
-int32_t getargs(uint8_t * buf, int32_t nbytes)
+/*
+ * getargs
+ *   DESCRIPTION: Copies the supplied arguments into the given buffer
+ *   INPUTS: buf - the buffer to copy the args into
+ *           nbytes - the number of bytes to copy
+ *   OUTPUTS: none
+ *   RETURN VALUE: -1 - if args do not fit into the buffer
+ *                 0 - otherwise
+ *   SIDE EFFECTS: none
+ */
+int32_t
+getargs(uint8_t * buf, int32_t nbytes)
 {
     pcb_t * pcb = get_pcb();
 
@@ -453,19 +458,46 @@ int32_t getargs(uint8_t * buf, int32_t nbytes)
 }
 
 
-int32_t vidmap(uint8_t** screen_start)
+/*
+ * vidmap
+ *   DESCRIPTION: Unsupported
+ *   INPUTS: screen_start
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0 - unsupported
+ *   SIDE EFFECTS: none
+ */
+int32_t
+vidmap(uint8_t** screen_start)
 {
     return 0;
 }
 
 
-int32_t set_handler(int32_t signum, void * handler)
+/*
+ * set_handler
+ *   DESCRIPTION: Unsupported
+ *   INPUTS: signum, handler
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0 - unsupported
+ *   SIDE EFFECTS: none
+ */
+int32_t
+set_handler(int32_t signum, void * handler)
 {
     return 0;
 }
 
 
-int32_t sigreturn(void)
+/*
+ * sigreturn
+ *   DESCRIPTION: Unsupported
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: 0 - unsupported
+ *   SIDE EFFECTS: none
+ */
+int32_t
+sigreturn(void)
 {
     return 0;
 }

@@ -57,11 +57,11 @@ get_file_size(dentry_t * d)
 
 /*
  * get_inode_ptr
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Returns a pointer to the inode block using the inode number
+ *   INPUTS: uint32_t inode
+ *   OUTPUTS: none
+ *   RETURN VALUE: the inode_t pointer
+ *   SIDE EFFECTS: none
  */
 inode_t *
 get_inode_ptr(uint32_t inode)
@@ -72,11 +72,11 @@ get_inode_ptr(uint32_t inode)
 
 /*
  * get_inode_from_ptr
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Returns the inode number using the inode pointer
+ *   INPUTS: inode_t inode pointer
+ *   OUTPUTS: none
+ *   RETURN VALUE: the inode number
+ *   SIDE EFFECTS: none
  */
 uint32_t
 get_inode_from_ptr(inode_t * inode_ptr)
@@ -87,11 +87,11 @@ get_inode_from_ptr(inode_t * inode_ptr)
 
 /*
  * get_elf_header
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Returns the 32 bit ELF header
+ *   INPUTS: The inode number of the file
+ *   OUTPUTS: none
+ *   RETURN VALUE: The 32 bit ELF header
+ *   SIDE EFFECTS: none
  */
 int32_t
 get_elf_header(uint32_t inode)
@@ -105,11 +105,12 @@ get_elf_header(uint32_t inode)
 
 /*
  * get_elf_entrypoint
- *   DESCRIPTION:
- *   INPUTS:
- *   OUTPUTS:
- *   RETURN VALUE:
- *   SIDE EFFECTS:
+ *   DESCRIPTION: Returns a pointer to the entrypoint of a loded file in memory
+ *                using the bytes 24-27 in the file
+ *   INPUTS: The inode number of the file
+ *   OUTPUTS: none
+ *   RETURN VALUE: Pointer in memory
+ *   SIDE EFFECTS: none
  */
 void *
 get_elf_entrypoint(uint32_t inode)
@@ -157,7 +158,7 @@ fs_close(int32_t fd)
 /*
  * fs_read
  *   DESCRIPTION: Reads the bytes of a given file based on the file descriptor
- *   INPUTS: fd - pointer to a file_desc_t object,
+ *   INPUTS: fd - the file descriptor number
  *           buf - the buffer to put the bytes into
  *           nbytes - the number of bytes to read
  *   OUTPUTS: none
@@ -175,6 +176,7 @@ fs_read(int32_t fd, void* buf, int32_t nbytes)
         dentry_t d;
         if (!read_dentry_by_index(fd_file.pos, &d))
         {
+            /* increment the position in the list of files in directory */
             get_pcb()->fds[fd].pos++;
             if(nbytes <= FILENAME_SIZE)
             {
@@ -190,6 +192,7 @@ fs_read(int32_t fd, void* buf, int32_t nbytes)
         /* read_dentry_by_index failed */
         return 0;
     }
+    /* read file */
     else if(((fd_file.flags & FILE_TYPE_MASK) >> 1) == NORMAL_FILE_TYPE)
     {
         uint32_t inode = get_inode_from_ptr(fd_file.inode);
@@ -210,13 +213,13 @@ fs_read(int32_t fd, void* buf, int32_t nbytes)
  *   DESCRIPTION: Unsupported
  *   INPUTS: fd, buf, nbytes
  *   OUTPUTS: none
- *   RETURN VALUE: 0
+ *   RETURN VALUE: -1 - unsuccessful
  *   SIDE EFFECTS: none
  */
 int32_t
 fs_write(int32_t fd, const void* buf, int32_t nbytes)
 {
-    return 0;
+    return -1;
 }
 
 

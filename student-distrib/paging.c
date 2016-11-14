@@ -76,7 +76,14 @@ init_paging(void)
 
 
 /*
- * TODO
+ * map_pde
+ *   DESCRIPTION: Maps the given virtual address to the entry specified by
+ *                the given Page Directory Entry. Creates a 4MB page.
+ *   INPUTS: vir_addr - the virtual address within the page to map
+ *           pde - the entry to put into the Page Directory for this page
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Flushes the x86 TLBs
  */
 void
 map_pde(uint32_t vir_addr, pde_t pde)
@@ -84,11 +91,17 @@ map_pde(uint32_t vir_addr, pde_t pde)
     uint32_t pde_bytes;
     memcpy(&pde_bytes, &pde, sizeof(pde_t));
     page_directory[(vir_addr >> SHIFT_4MB)] = pde_bytes;
+    flush_tlb();
 }
 
 
 /*
- * TODO
+ * flush_tlb
+ *   DESCRIPTION: Flushes the x86 TLBs
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
  */
 void
 flush_tlb()
