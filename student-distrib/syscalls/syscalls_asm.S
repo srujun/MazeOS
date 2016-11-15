@@ -15,6 +15,8 @@ store_esp0:
     pushl    %ebx
     pushl    %ecx
     movl     %esp, %ebx
+    # mask the upper bits to get address of start of process kernel stack
+    # 0xFFFFE000 = 8KB mask
     andl     $0xFFFFE000, %ebx
     movl     %esp, %ecx
     addl     $8, %ecx
@@ -41,6 +43,7 @@ syscall_handler_continue:
     pushl    %ebp
     pushfl
 
+    # 0x18 = KERNEL_DS
     movw     $0x18, %di
     movw     %di, %ds
 
