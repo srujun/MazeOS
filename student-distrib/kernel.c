@@ -3,14 +3,14 @@
  */
 
 #include "multiboot.h"
-#include "x86_desc.h"
+#include "x86/x86_desc.h"
 #include "lib.h"
-#include "i8259.h"
+#include "x86/i8259.h"
 #include "debug.h"
-#include "idt.h"
+#include "x86/idt.h"
 #include "paging.h"
-#include "rtc.h"
-#include "keyboard.h"
+#include "drivers/rtc.h"
+#include "drivers/keyboard.h"
 #include "filesystem.h"
 #include "syscalls/syscalls.h"
 

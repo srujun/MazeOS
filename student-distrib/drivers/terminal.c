@@ -5,9 +5,9 @@
  */
 
 #include "lib.h"
-#include "terminal.h"
-#include "keyboard.h"
-#include "i8259.h"
+#include "drivers/terminal.h"
+#include "drivers/keyboard.h"
+#include "x86/i8259.h"
 
 
 /*

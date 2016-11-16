@@ -5,8 +5,8 @@
 #ifndef SYSCALLS_H
 #define SYSCALLS_H
 
-#include "../types.h"
-#include "../filesystem.h"
+#include "types.h"
+#include "filesystem.h"
 
 #define ELF_HEADER             0x464C457F
 #define BASE_ADDR_4MB_OFFSET   22

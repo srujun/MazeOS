@@ -2,15 +2,15 @@
  * syscalls.c - Defines function for syscalls infrastructure
  */
 
-#include "syscalls.h"
-#include "../paging.h"
-#include "../process.h"
-#include "../x86_desc.h"
-#include "../lib.h"
-#include "../filesystem.h"
-#include "../rtc.h"
-#include "../keyboard.h"
-#include "../terminal.h"
+#include "syscalls/syscalls.h"
+#include "paging.h"
+#include "process.h"
+#include "x86/x86_desc.h"
+#include "lib.h"
+#include "filesystem.h"
+#include "drivers/rtc.h"
+#include "drivers/keyboard.h"
+#include "drivers/terminal.h"
 
 static file_ops_t fs_ops = {fs_open, fs_close, fs_read, fs_write};
 static file_ops_t rtc_ops = {rtc_open, rtc_close, rtc_read, rtc_write};

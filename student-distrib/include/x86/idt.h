@@ -6,7 +6,7 @@
 #define IDT_H
 
 #include "lib.h"
-#include "x86_desc.h"
+#include "x86/x86_desc.h"
 #include "types.h"
 
 #define NUM_VECTORS              256

@@ -4,8 +4,8 @@
  * initialisation and interrupt handling for the real time clock
  */
 
-#include "rtc.h"
-#include "i8259.h"
+#include "drivers/rtc.h"
+#include "x86/i8259.h"
 #include "lib.h"
 #include "types.h"
 

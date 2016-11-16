@@ -2,11 +2,11 @@
  * idt.c - Implementation of IDT declarations
  */
 
-#include "idt.h"
+#include "x86/idt.h"
 #include "syscalls/syscalls.h"
-#include "rtc.h"
-#include "keyboard.h"
-#include "i8259.h"
+#include "drivers/rtc.h"
+#include "drivers/keyboard.h"
+#include "x86/i8259.h"
 #include "interrupts.h"
 
 

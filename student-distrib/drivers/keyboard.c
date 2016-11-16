@@ -4,10 +4,10 @@
  * the keyboard interrupts
  */
 
-#include "rtc.h"
-#include "i8259.h"
+#include "drivers/rtc.h"
+#include "x86/i8259.h"
 #include "lib.h"
-#include "keyboard.h"
+#include "drivers/keyboard.h"
 #include "types.h"
 
 /* flags keeps tracks of all the special keys */
