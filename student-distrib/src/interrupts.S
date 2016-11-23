@@ -2,7 +2,7 @@
 
 #define ASM    1
 
-#include "x86_desc.h"
+#include "x86/x86_desc.h"
 
 /*
  * irq_wrapper_X

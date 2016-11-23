@@ -4,7 +4,7 @@
 #define ASM     1
 
 #include "multiboot.h"
-#include "x86_desc.h"
+#include "x86/x86_desc.h"
 
 .text
 
