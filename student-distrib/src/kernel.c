@@ -4,14 +4,15 @@
 
 #include "multiboot.h"
 #include "x86/x86_desc.h"
-#include "lib.h"
-#include "x86/i8259.h"
 #include "debug.h"
-#include "x86/idt.h"
+#include "lib.h"
 #include "paging.h"
+#include "filesystem.h"
+#include "process.h"
+#include "x86/i8259.h"
+#include "x86/idt.h"
 #include "drivers/rtc.h"
 #include "drivers/keyboard.h"
-#include "filesystem.h"
 #include "syscalls/syscalls.h"
 
 /* Macros. */
@@ -177,6 +178,7 @@ entry (unsigned long magic, unsigned long addr)
 
 	/* Initialize devices, memory, filesystem, enable device interrupts on the
 	 * PIC, any other initialization stuff... */
+	pit_init();
 	rtc_init();
 	keyboard_init();
 

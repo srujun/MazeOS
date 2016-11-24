@@ -174,24 +174,6 @@ send_eoi(uint32_t irq_num)
 
 
 /*
- * pit_interrupt_handler
- *   DESCRIPTION: Unimplemented Programmable Interrupt Timer IRQ handler
- *                Currently just sends back acknowledgement of interrupt
- *   INPUTS: none
- *   OUTPUTS: none
- *   RETURN VALUE: none
- *   SIDE EFFECTS: none
- */
-void
-pit_interrupt_handler(void)
-{
-    disable_irq(PIT_IRQ);
-    send_eoi(PIT_IRQ);
-    enable_irq(PIT_IRQ);
-}
-
-
-/*
  * pic_master_irq_handler
  *   DESCRIPTION: Unimplemented handler for IRQs from the Master PIC that are
  *                not defined. Currently just sends acknowledgement of interrupt

@@ -1,6 +1,7 @@
 /* process.c - Implementations of process functions */
 
 #include "process.h"
+#include "x86/i8259.h"
 #include "syscalls/syscalls.h"
 
 static uint8_t available_pids[MAX_PROCESSES] = {0};
@@ -70,4 +71,59 @@ free_pid(uint32_t pid)
 
     available_pids[pid - 1] = 0;
     return 0;
+}
+
+
+/*
+ * pit_init
+ *   DESCRIPTION: TODO
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+void
+pit_init(void)
+{
+    /* set up the PIT to Mode 3 */
+    outb(PIT_CMD_VAL, PIT_CMD_REG);
+    /* write the interrupt frequency to the PIT */
+    /* lower 8 bits first, then high 8 bits */
+    outb(PIT_25MS & 0xFF, PIT_CHANNEL0_REG);
+    outb(PIT_25MS >> 8, PIT_CHANNEL0_REG);
+
+    enable_irq(PIT_IRQ);
+}
+
+
+/*
+ * pit_interrupt_handler
+ *   DESCRIPTION: TODO
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+void
+pit_interrupt_handler(void)
+{
+    send_eoi(PIT_IRQ);
+
+    cli();
+    context_switch();
+    sti();
+}
+
+
+/*
+ * context_switch
+ *   DESCRIPTION: TODO
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+void context_switch(void)
+{
+    return;
 }
