@@ -1,7 +1,7 @@
 /* kernel.c - the C part of the kernel
  * vim:ts=4 noexpandtab
  */
-
+#define DEBUG
 #include "multiboot.h"
 #include "x86/x86_desc.h"
 #include "lib.h"
@@ -13,6 +13,7 @@
 #include "drivers/keyboard.h"
 #include "filesystem.h"
 #include "syscalls/syscalls.h"
+#include "pci.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -177,6 +178,8 @@ entry (unsigned long magic, unsigned long addr)
 
 	/* Initialize devices, memory, filesystem, enable device interrupts on the
 	 * PIC, any other initialization stuff... */
+	pci_init();
+
 	rtc_init();
 	keyboard_init();
 
@@ -187,12 +190,12 @@ entry (unsigned long magic, unsigned long addr)
 	printf("Enabling Interrupts\n");
 	sti();
 
-    clear_setpos(0, 0);
+    // clear_setpos(0, 0);
 
     /* Initialize the filesystem */
     fs_init((void *)fs_start_addr, (void *)fs_end_addr);
 
-	/* Execute the first program (`shell') ... */
+    /* Execute the first program (`shell') ... */
     execute((uint8_t*)"shell");
 
     /* Test Page Fault */
