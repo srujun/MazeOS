@@ -11,6 +11,7 @@
 #include "paging.h"
 #include "drivers/rtc.h"
 #include "drivers/keyboard.h"
+#include "drivers/vga.h"
 #include "filesystem.h"
 #include "syscalls/syscalls.h"
 
@@ -180,6 +181,8 @@ entry (unsigned long magic, unsigned long addr)
 	rtc_init();
 	keyboard_init();
 
+	vga_init();
+
 	/* Enable interrupts */
 	/* Do not enable the following until after you have set up your
 	 * IDT correctly otherwise QEMU will triple fault and simple close
@@ -187,7 +190,7 @@ entry (unsigned long magic, unsigned long addr)
 	printf("Enabling Interrupts\n");
 	sti();
 
-    clear_setpos(0, 0);
+    // clear_setpos(0, 0);
 
     /* Initialize the filesystem */
     fs_init((void *)fs_start_addr, (void *)fs_end_addr);

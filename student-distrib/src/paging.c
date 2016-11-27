@@ -9,6 +9,8 @@
 #define PAGE_ALIGN         4096
 #define SHIFT_4MB          22
 
+#define VBE_MEM_START      0xA0     // index of start of vbe memory
+#define VBE_MEM_PG_COUNT   16       // number of pages in vbe memory (64KB)
 #define VIDEO_MEM_START    0xB8     // index of start of video memory
 #define VIDEO_MEM_PG_COUNT 8        // number of pages in video memory (32KB)
 
@@ -49,6 +51,14 @@ init_paging(void)
     for (i = 0; i < PAGE_COUNT; i++)
     {
         first_4MB_table[i] = (i * PAGE_ALIGN) | PAGE_READWRITE;
+    }
+
+    /* Initialize vbe memory pages (64KB) starting at 0xA0000,
+       to present, Read/Write, Supervisor */
+    for (i = 0; i < VBE_MEM_PG_COUNT; i++)
+    {
+        first_4MB_table[VBE_MEM_START + i] = ((VBE_MEM_START + i) *
+            PAGE_ALIGN) | PAGE_PRESENT | PAGE_READWRITE;
     }
 
     /* Initialize video memory pages (32KB) starting at 0xB8000,
