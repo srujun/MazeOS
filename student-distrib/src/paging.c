@@ -24,6 +24,7 @@
 /* Arrays to hold the Page Directory and the table for the first 4MB section */
 static uint32_t page_directory[PAGE_COUNT] __attribute__((aligned(PAGE_ALIGN)));
 static uint32_t first_4MB_table[PAGE_COUNT] __attribute__((aligned(PAGE_ALIGN)));
+static uint32_t user_4MB_table[PAGE_COUNT] __attribute__((aligned(PAGE_ALIGN)));
 
 
 /*
@@ -49,6 +50,12 @@ init_paging(void)
     for (i = 0; i < PAGE_COUNT; i++)
     {
         first_4MB_table[i] = (i * PAGE_ALIGN) | PAGE_READWRITE;
+    }
+
+    /* Initialize the 4KB PTE's for the user page table */
+    for (i = 0; i < PAGE_COUNT; i++)
+    {
+        user_4MB_table[i] = PAGE_USER | PAGE_READWRITE;
     }
 
     /* Initialize video memory pages (32KB) starting at 0xB8000,
@@ -91,6 +98,20 @@ map_pde(uint32_t vir_addr, pde_t pde)
     uint32_t pde_bytes;
     memcpy(&pde_bytes, &pde, sizeof(pde_t));
     page_directory[(vir_addr >> SHIFT_4MB)] = pde_bytes;
+    flush_tlb();
+}
+
+
+void 
+remapUser(uint32_t vir_addr, pte_t pte)
+{
+    uint32_t pte_bytes;
+    memcpy(&pte_bytes, &pte, sizeof(pte_t));
+
+    page_directory[(vir_addr >> SHIFT_4MB)] = ((uint32_t) user_4MB_table) |
+                PAGE_PRESENT | PAGE_READWRITE | PAGE_USER;
+    user_4MB_table[0] = pte_bytes;
+
     flush_tlb();
 }
 

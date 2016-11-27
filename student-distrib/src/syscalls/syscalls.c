@@ -460,7 +460,7 @@ getargs(uint8_t * buf, int32_t nbytes)
 
 
 /*
- * vidmap
+ * vidmap TODO
  *   DESCRIPTION: Unsupported
  *   INPUTS: screen_start
  *   OUTPUTS: none
@@ -470,6 +470,30 @@ getargs(uint8_t * buf, int32_t nbytes)
 int32_t
 vidmap(uint8_t** screen_start)
 {
+    if((uint32_t) screen_start < _128MB ||
+       (uint32_t) screen_start >= (_128MB + _4MB))
+        return -1;
+
+    pte_t pte;
+
+    memset(&(pte), 0, sizeof(pte_t));
+
+    pte.present = 1;
+    pte.read_write = 1;
+    pte.user_supervisor = 1;
+    pte.writethrough = 0;
+    pte.cache_disabled = 0;
+    pte.accessed = 0;
+    pte.dirty = 0;
+    pte.page_size = 0;
+    pte.global = 0;
+    pte.available = 0;
+    pte.base_addr = 0xB8;
+
+    remapUser((uint32_t)(_128MB + _8MB), pte);
+
+    *screen_start = (uint8_t*)(_128MB + _8MB);
+
     return 0;
 }
 
