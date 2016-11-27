@@ -470,7 +470,32 @@ getargs(uint8_t * buf, int32_t nbytes)
 int32_t
 vidmap(uint8_t** screen_start)
 {
-    return 0;
+    if((uint32_t) screen_start < _128MB || (uint32_t) screen_start >= (_128MB + _4MB))
+        return -1;
+   
+    pde_t pde;
+    
+    memset(&(pde), 0, sizeof(pde_t));
+    
+    pde.present = 1;
+    pde.read_write = 1;
+    pde.user_supervisor = 1;
+    pde.writethrough = 0;
+    pde.cache_disabled = 0;
+    pde.accessed = 0;
+    pde.dirty = 0;
+    pde.page_size = 0;
+    pde.global = 0;
+    pde.available = 0;
+    pde.attr_index = 0;
+    pde.reserved = 0;
+    pde.base_addr = 0xB8;
+
+    remapUser((uint32_t)(_128MB + _8MB), pde);
+    
+    *screen_start = (uint8_t*)(_128MB + _8MB);
+
+    return (_128MB + _8MB);
 }
 
 

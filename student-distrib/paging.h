@@ -28,6 +28,7 @@ typedef struct __attribute__((packed)) pde {
 void init_paging(void);
 
 void map_pde(uint32_t vir_addr, pde_t pde);
+void remapUser(uint32_t vir_addr, pde_t pde);
 void flush_tlb();
 
 /* Functions defined in Assembly */
