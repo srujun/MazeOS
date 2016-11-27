@@ -490,9 +490,9 @@ vidmap(uint8_t** screen_start)
     pte.available = 0;
     pte.base_addr = 0xB8;
 
-    remapUser((uint32_t)(_128MB + _8MB), pte);
+    map_user_video_mem((uint32_t)(USER_VIDEO_MEM_ADDR), pte);
 
-    *screen_start = (uint8_t*)(_128MB + _8MB);
+    *screen_start = (uint8_t*)(USER_VIDEO_MEM_ADDR);
 
     return 0;
 }

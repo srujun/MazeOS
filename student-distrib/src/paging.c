@@ -102,8 +102,16 @@ map_pde(uint32_t vir_addr, pde_t pde)
 }
 
 
+/*
+ * map_user_video_mem TODO
+ *   DESCRIPTION: TODO
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
 void 
-remapUser(uint32_t vir_addr, pte_t pte)
+map_user_video_mem(uint32_t vir_addr, pte_t pte)
 {
     uint32_t pte_bytes;
     memcpy(&pte_bytes, &pte, sizeof(pte_t));
