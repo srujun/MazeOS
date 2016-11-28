@@ -170,7 +170,7 @@ execute(const uint8_t * command)
     pcb.pde_virt_addr = _128MB;
 
     /* clear the pcb's pde entry and set the bits */
-    memset(&(pcb.pde), 0, sizeof(pde_t));
+    memset(&(pcb.pde), 0, sizeof(pde_4M_t));
     pcb.pde.present = 1;
     pcb.pde.read_write = 1;
     pcb.pde.user_supervisor = 1;
@@ -484,8 +484,8 @@ vidmap(uint8_t** screen_start)
     pte.writethrough = 0;
     pte.cache_disabled = 0;
     pte.accessed = 0;
+    pte.attr_index = 0;
     pte.dirty = 0;
-    pte.page_size = 0;
     pte.global = 0;
     pte.available = 0;
     pte.base_addr = 0xB8;

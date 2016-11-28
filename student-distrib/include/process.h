@@ -8,7 +8,7 @@
 #include "filesystem.h"
 
 #define ESP_PCB_MASK           0xFFFFE000
-#define MAX_PROCESSES          2
+#define MAX_PROCESSES          6
 #define ARGS_LENGTH            128
 
 typedef struct pcb pcb_t;
@@ -16,7 +16,7 @@ struct pcb {
     uint32_t esp0;
     uint16_t pid;
 
-    pde_t pde;
+    pde_4M_t pde;
     uint32_t pde_virt_addr;
 
     uint32_t esp;
