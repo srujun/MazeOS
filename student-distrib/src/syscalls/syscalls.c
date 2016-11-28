@@ -170,7 +170,7 @@ execute(const uint8_t * command)
     pcb.pde_virt_addr = _128MB;
 
     /* clear the pcb's pde entry and set the bits */
-    memset(&(pcb.pde), 0, sizeof(pde_t));
+    memset(&(pcb.pde), 0, sizeof(pde_4M_t));
     pcb.pde.present = 1;
     pcb.pde.read_write = 1;
     pcb.pde.user_supervisor = 1;
@@ -461,15 +461,40 @@ getargs(uint8_t * buf, int32_t nbytes)
 
 /*
  * vidmap
- *   DESCRIPTION: Unsupported
- *   INPUTS: screen_start
- *   OUTPUTS: none
- *   RETURN VALUE: 0 - unsupported
- *   SIDE EFFECTS: none
+ *   DESCRIPTION: Maps a 4KB user-level memory page to the video memory and
+ *                writes the address to the given pointer
+ *   INPUTS: screen_start - the pointer to modify
+ *   OUTPUTS: screen_start
+ *   RETURN VALUE: 0 - successful
+ *                 -1 - the given pointer is not owned by the user process
+ *   SIDE EFFECTS: creates a new page mapping
  */
 int32_t
 vidmap(uint8_t** screen_start)
 {
+    if((uint32_t) screen_start < _128MB ||
+       (uint32_t) screen_start >= (_128MB + _4MB))
+        return -1;
+
+    pte_t pte;
+
+    memset(&(pte), 0, sizeof(pte_t));
+
+    pte.present = 1;
+    pte.read_write = 1;
+    pte.user_supervisor = 1;
+    pte.writethrough = 0;
+    pte.cache_disabled = 0;
+    pte.accessed = 0;
+    pte.attr_index = 0;
+    pte.dirty = 0;
+    pte.global = 0;
+    pte.available = 0;
+
+    map_user_video_mem(USER_VIDEO_MEM_ADDR, pte);
+
+    *screen_start = (uint8_t*)(USER_VIDEO_MEM_ADDR);
+
     return 0;
 }
 

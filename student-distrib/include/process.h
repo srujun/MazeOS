@@ -16,7 +16,7 @@ struct pcb {
     uint32_t esp0;
     uint16_t pid;
 
-    pde_t pde;
+    pde_4M_t pde;
     uint32_t pde_virt_addr;
 
     uint32_t esp;
