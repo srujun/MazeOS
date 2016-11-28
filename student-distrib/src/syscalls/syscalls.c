@@ -449,8 +449,13 @@ close(int32_t fd)
 int32_t
 getargs(uint8_t * buf, int32_t nbytes)
 {
+    /* check if buffer is within userspace memory */
+    if((uint32_t) buf < _128MB || (uint32_t) buf >= (_128MB + _4MB))
+        return -1;
+
     pcb_t * pcb = get_pcb();
 
+    /* check if we have been given enough space to fit the whole args string */
     if (nbytes < pcb->args_length + 1)
         return -1;
 
@@ -472,14 +477,15 @@ getargs(uint8_t * buf, int32_t nbytes)
 int32_t
 vidmap(uint8_t** screen_start)
 {
+    /* check if screen start is within userspace memory */
     if((uint32_t) screen_start < _128MB ||
        (uint32_t) screen_start >= (_128MB + _4MB))
         return -1;
 
     pte_t pte;
-
     memset(&(pte), 0, sizeof(pte_t));
 
+    /* create the video memory page with user access */
     pte.present = 1;
     pte.read_write = 1;
     pte.user_supervisor = 1;
