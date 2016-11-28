@@ -8,7 +8,7 @@
 #include "filesystem.h"
 
 #define ESP_PCB_MASK           0xFFFFE000
-#define MAX_PROCESSES          6
+#define MAX_PROCESSES          2
 #define ARGS_LENGTH            128
 
 typedef struct pcb pcb_t;

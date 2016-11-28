@@ -43,7 +43,7 @@ init_paging(void)
     default_pde.user_supervisor = 0;
 
     for (i = 0; i < PAGE_COUNT; i++)
-        memcpy(page_directory + i, &default_pde, sizeof(pde_4M_t));
+        memcpy(&page_directory[i], &default_pde, sizeof(pde_4M_t));
 
     /* Initialize the 4KB PTE's for the first 4MB table in physical memory,
        to NOT present, Read/Write, Supervisor */
@@ -56,7 +56,7 @@ init_paging(void)
     for (i = 0; i < PAGE_COUNT; i++)
     {
         init_pte.base_addr = i;
-        memcpy(first_4MB_table + i, &init_pte, sizeof(pte_t));
+        memcpy(&first_4MB_table[i], &init_pte, sizeof(pte_t));
     }
 
     /* Initialize the 4KB PTE's for the user 4KB page table */
@@ -67,7 +67,7 @@ init_paging(void)
     user_pte.user_supervisor = 1;
 
     for (i = 0; i < PAGE_COUNT; i++)
-        memcpy(user_4MB_table + i, &user_pte, sizeof(pte_t));
+        memcpy(&user_4MB_table[i], &user_pte, sizeof(pte_t));
 
     /* Initialize video memory pages (32KB) starting at 0xB8000,
        to present, Read/Write, Supervisor */
@@ -80,7 +80,7 @@ init_paging(void)
     for (i = 0; i < VIDEO_MEM_PG_COUNT; i++)
     {
         video_mem_pte.base_addr = VIDEO_MEM_INDEX + i;
-        memcpy(first_4MB_table + VIDEO_MEM_INDEX + i,
+        memcpy(&first_4MB_table[VIDEO_MEM_INDEX + i],
                &video_mem_pte, sizeof(pte_t));
     }
 
@@ -92,9 +92,8 @@ init_paging(void)
     first_pde.read_write = 1;
     first_pde.user_supervisor = 1;
     first_pde.base_addr = ((uint32_t) first_4MB_table) >> SHIFT_4KB;
-    memcpy(page_directory + 0, &first_pde, sizeof(pde_4K_t));
+    memcpy(&page_directory[0], &first_pde, sizeof(pde_4K_t));
 
-    
     /* 4MB for Kernel Space, set to present, Read/Write, Supervisor */
     pde_4M_t kernel_pde;
     memset(&(kernel_pde), 0, sizeof(pde_4M_t));
@@ -103,7 +102,7 @@ init_paging(void)
     kernel_pde.user_supervisor = 0;
     kernel_pde.page_size = 1;
     kernel_pde.base_addr = KERNEL_MEM_START >> SHIFT_4MB;
-    memcpy(page_directory + 1, &kernel_pde, sizeof(pde_4M_t));
+    memcpy(&page_directory[1], &kernel_pde, sizeof(pde_4M_t));
 
     /* give the page_directory pointer to CR3 */
     load_page_directory((uint32_t) page_directory);
@@ -133,16 +132,20 @@ map_pde(uint32_t vir_addr, pde_4M_t pde)
 
 
 /*
- * map_user_video_mem TODO
- *   DESCRIPTION: TODO
- *   INPUTS: none
+ * map_user_video_mem
+ *   DESCRIPTION: Maps the given virtual address to the video memory and creates
+ *                a 4KB page entry for it.
+ *   INPUTS: vir_addr - the virtual address within the page to map
+ *           pte - the entry to put into the Page Table for this page
  *   OUTPUTS: none
  *   RETURN VALUE: none
- *   SIDE EFFECTS: none
+ *   SIDE EFFECTS: Flushes the x86 TLBs
  */
 void
 map_user_video_mem(uint32_t vir_addr, pte_t pte)
 {
+    pte.base_addr = VIDEO_MEM_INDEX;
+
     uint32_t pte_bytes;
     memcpy(&pte_bytes, &pte, sizeof(pte_t));
 

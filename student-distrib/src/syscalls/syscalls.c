@@ -460,12 +460,14 @@ getargs(uint8_t * buf, int32_t nbytes)
 
 
 /*
- * vidmap TODO
- *   DESCRIPTION: Unsupported
- *   INPUTS: screen_start
- *   OUTPUTS: none
- *   RETURN VALUE: 0 - unsupported
- *   SIDE EFFECTS: none
+ * vidmap
+ *   DESCRIPTION: Maps a 4KB user-level memory page to the video memory and
+ *                writes the address to the given pointer
+ *   INPUTS: screen_start - the pointer to modify
+ *   OUTPUTS: screen_start
+ *   RETURN VALUE: 0 - successful
+ *                 -1 - the given pointer is not owned by the user process
+ *   SIDE EFFECTS: creates a new page mapping
  */
 int32_t
 vidmap(uint8_t** screen_start)
@@ -488,9 +490,8 @@ vidmap(uint8_t** screen_start)
     pte.dirty = 0;
     pte.global = 0;
     pte.available = 0;
-    pte.base_addr = 0xB8;
 
-    map_user_video_mem((uint32_t)(USER_VIDEO_MEM_ADDR), pte);
+    map_user_video_mem(USER_VIDEO_MEM_ADDR, pte);
 
     *screen_start = (uint8_t*)(USER_VIDEO_MEM_ADDR);
 
