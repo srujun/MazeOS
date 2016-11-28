@@ -8,12 +8,6 @@
 #define SHIFT_4MB          22
 #define SHIFT_4KB          12
 
-/* Paging fields */
-#define PAGE_PRESENT       0x01     // bit 0
-#define PAGE_READWRITE     0x02     // bit 1
-#define PAGE_USER          0x04     // bit 2
-#define PAGE_4MB           0x80     // bit 7
-
 
 /* Arrays to hold the Page Directory and the table for the first 4MB section */
 static uint32_t page_directory[PAGE_COUNT] __attribute__((aligned(PAGE_ALIGN)));
@@ -149,8 +143,14 @@ map_user_video_mem(uint32_t vir_addr, pte_t pte)
     uint32_t pte_bytes;
     memcpy(&pte_bytes, &pte, sizeof(pte_t));
 
-    page_directory[(vir_addr >> SHIFT_4MB)] = ((uint32_t) user_4MB_table) |
-                PAGE_PRESENT | PAGE_READWRITE | PAGE_USER;
+    pde_4K_t pde;
+    memset(&(pde), 0, sizeof(pde_4K_t));
+    pde.present = 1;
+    pde.read_write = 1;
+    pde.user_supervisor = 1;
+    pde.base_addr = ((uint32_t) user_4MB_table) >> SHIFT_4KB;
+    memcpy(&page_directory[(vir_addr >> SHIFT_4MB)], &pde, sizeof(pde_4K_t));
+
     user_4MB_table[0] = pte_bytes;
 
     flush_tlb();
