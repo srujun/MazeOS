@@ -19,6 +19,8 @@ static uint8_t r_shift;
 static uint8_t caps;
 static uint8_t l_ctrl;
 static uint8_t r_ctrl;
+static uint8_t l_alt;
+static uint8_t r_alt;
 
 volatile uint8_t ack;
 volatile uint8_t read_ack;
@@ -102,6 +104,8 @@ keyboard_init()
     caps = 0;
     l_ctrl = 0;
     r_ctrl = 0;
+    l_alt = 0;
+    r_alt = 0;
 
     enable_irq(KEYBOARD_IRQ);
 }
@@ -125,7 +129,7 @@ keyboard_interrupt_handler()
     uint8_t c = inb(KEYBOARD_PORT);
     uint8_t c2 = inb(KEYBOARD_PORT);
 
-    /* check modifier keys like SHIFT, CTRL, and CAPS LOCK */
+    /* check modifier keys like SHIFT, CTRL, ALT, and CAPS LOCK */
     if (check_modifier_keys(c, c2))
     {
         send_eoi(KEYBOARD_IRQ);
@@ -248,36 +252,6 @@ keyboard_read(int32_t fd, void* buf, int32_t nbytes)
 
 
 /*
- * get_kb_buffer
- *   DESCRIPTION: This function copies the current buffer into the given pointer
- *                Acknowledges if control codes are present
- *   INPUTS: fd - File Descriptor (unused)
- *           buf - The buffer to write data to
- *           nbytes - The number of bytes to be copied
- *   OUTPUTS: none
- *   RETURN VALUE: none
- *   SIDE EFFECTS: none
- */
-void
-get_kb_buffer(void* buf)
-{
-    disable_irq(KEYBOARD_IRQ);
-
-    memcpy(buf, buffer, MAX_BUFFER_SIZE);
-    /* if control codes are present, we need to acknowledge it for handling
-       them within the shell program */
-    if (buffer[0] == CTRL_A || buffer[0] == CTRL_C || buffer[0] == CTRL_L)
-    {
-        memset(buffer, '\0', MAX_BUFFER_SIZE);
-        buffer_size = 0;
-        ack = 0;
-    }
-
-    enable_irq(KEYBOARD_IRQ);
-}
-
-
-/*
  * keyboard_write
  *   DESCRIPTION: This function does nothing as of now.
  *                It will be used to handle command bytes
@@ -361,6 +335,28 @@ check_modifier_keys(uint8_t scan1, uint8_t scan2)
         return 1;
     }
 
+    if (scan1 == ALT_PRESSED)
+    {
+        l_alt = 1;
+        return 1;
+    }
+    else if (scan1 == ALT_RELEASED)
+    {
+        l_alt = 0;
+        return 1;
+    }
+
+    if (scan1 == ALT_PRESSED && scan2 == EXTENSION)
+    {
+        r_alt = 1;
+        return 1;
+    }
+    else if (scan1 == ALT_RELEASED && scan2 == EXTENSION)
+    {
+        r_alt = 0;
+        return 1;
+    }
+
     /* Check the status of Shift Keys */
     if (scan1 == L_SHIFT_PRESSED)
     {
@@ -434,6 +430,12 @@ check_control_codes(uint8_t scan1)
         }
 
         /* return 1 if any CTRL key is pressed */
+        return 1;
+    }
+
+    if(l_alt || r_alt)
+    {
+        putc('[');
         return 1;
     }
 

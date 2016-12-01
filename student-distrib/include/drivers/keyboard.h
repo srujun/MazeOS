@@ -32,6 +32,9 @@
 
 #define CAPS_PRESSED         0x3A
 
+#define ALT_PRESSED          0x38
+#define ALT_RELEASED         0xB8
+
 #define CTRL_PRESSED         0x1D
 #define CTRL_RELEASED        0x9D
 #define EXTENSION            0xE0
