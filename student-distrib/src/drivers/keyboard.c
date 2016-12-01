@@ -21,6 +21,7 @@ static uint8_t l_ctrl;
 static uint8_t r_ctrl;
 
 volatile uint8_t ack;
+volatile uint8_t read_ack;
 
 /* Create an array to store the ASCII values of the inputs to be printed */
 const static unsigned char scan_code_1[2][SUPPORTED_KEYS] = {
@@ -95,6 +96,7 @@ keyboard_init()
 
     buffer_size = 0;
     ack = 0;
+    read_ack = 0;
     l_shift = 0;
     r_shift = 0;
     caps = 0;
@@ -131,12 +133,15 @@ keyboard_interrupt_handler()
         return;
     }
 
-    /* check if user has pressed any control code combinations */
-    if (check_control_codes(c))
+    if (read_ack)
     {
-        send_eoi(KEYBOARD_IRQ);
-        enable_irq(KEYBOARD_IRQ);
-        return;
+        /* check if user has pressed any control code combinations */
+        if (check_control_codes(c))
+        {
+            send_eoi(KEYBOARD_IRQ);
+            enable_irq(KEYBOARD_IRQ);
+            return;
+        }
     }
 
     /* Check if any button is being pressed */
@@ -152,9 +157,12 @@ keyboard_interrupt_handler()
                 enable_irq(KEYBOARD_IRQ);
                 return;
             }
-            buffer_size--;
-            buffer[buffer_size] = '\0';
-            do_backspace();
+            if (read_ack)
+            {
+                buffer_size--;
+                buffer[buffer_size] = '\0';
+                do_backspace();
+            }
             send_eoi(KEYBOARD_IRQ);
             enable_irq(KEYBOARD_IRQ);
             return;
@@ -163,8 +171,11 @@ keyboard_interrupt_handler()
         /* handle enter key */
         if(c == ENTER_KEYCODE)
         {
-            buffer[buffer_size] = '\n';
-            buffer_size++;
+            if (read_ack)
+            {
+                buffer[buffer_size] = '\n';
+                buffer_size++;
+            }
             ack = 1;
             putc('\n');
             send_eoi(KEYBOARD_IRQ);
@@ -207,10 +218,15 @@ keyboard_interrupt_handler()
 int
 keyboard_read(int32_t fd, void* buf, int32_t nbytes)
 {
+    /* allow buffer filling */
+    read_ack = 1;
+    /* resetting flag at every read */
+    ack = 0;
     /* spin until user presses Enter or the buffer has been filled */
     while(!ack);
 
     ack = 0;
+    read_ack = 0;
     disable_irq(KEYBOARD_IRQ);
     uint32_t size;
 
@@ -455,8 +471,11 @@ print_character(uint8_t scan1)
         int i;
         for (i = 0; i < 4; i++)
         {
-            buffer[buffer_size] = (' ');
-            buffer_size++;
+            if (read_ack)
+            {
+                buffer[buffer_size] = (' ');
+                buffer_size++;
+            }
             putc(' ');
         }
     }
@@ -464,8 +483,11 @@ print_character(uint8_t scan1)
             scan1 == CURSOR_LEFT || scan1 == CURSOR_DOWN);
     else
     {
-        buffer[buffer_size] = output;
-        buffer_size++;
+        if (read_ack)
+        {
+            buffer[buffer_size] = output;
+            buffer_size++;
+        }
         putc(output);
     }
 }
