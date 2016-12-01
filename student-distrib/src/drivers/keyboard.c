@@ -183,18 +183,21 @@ keyboard_interrupt_handler()
             return;
         }
 
+        /* otherwise print the character */
+        print_character(c);
+
         /* check for buffer filled */
         if(buffer_size == MAX_BUFFER_SIZE - 1)
         {
-            buffer[buffer_size] = '\0';
+            buffer[buffer_size] = '\n';
+            buffer_size++;
             ack = 1;
+            putc('\n');
             send_eoi(KEYBOARD_IRQ);
             enable_irq(KEYBOARD_IRQ);
             return;
         }
 
-        /* otherwise print the character */
-        print_character(c);
     }
 
     send_eoi(KEYBOARD_IRQ);
