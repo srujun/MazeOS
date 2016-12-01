@@ -32,7 +32,13 @@ int32_t
 halt(uint8_t status)
 {
     int i;
+    int32_t retval;
     pcb_t * pcb = get_pcb();
+
+    if (pcb->retval == RETURN_EXCEPTION)
+        retval = RETURN_EXCEPTION;
+    else
+        retval = status;
 
     /* close file descriptors */
     for (i = 0; i < MAX_OPEN_FILES; i++)
@@ -75,7 +81,7 @@ halt(uint8_t status)
         "movl %1, %%esp      \n\t"
         "jmp BIG_FAT_RETURN"
         :
-        : "r" ((uint32_t) status), "r" (k_esp)
+        : "r" (retval), "r" (k_esp)
         : "%eax", "%esp"
     );
 
@@ -114,6 +120,14 @@ execute(const uint8_t * command)
     memset(args, '\0', ARGS_LENGTH);
 
     uint16_t i, args_length = 0;
+
+    /* check if command pointer is within userspace */
+    if((uint32_t) command < _128MB || (uint32_t) command >= (_128MB + _4MB))
+    {
+        /* check if command pointer is within kernel space */
+        if((uint32_t) command < _4MB || (uint32_t) command >= (_4MB + _4MB))
+            return -1;
+    }
 
     /* get the filename */
     for(i = 0; command[i] != ' ' && command[i] != '\n' &&
