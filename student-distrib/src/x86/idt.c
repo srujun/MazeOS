@@ -8,6 +8,7 @@
 #include "drivers/keyboard.h"
 #include "x86/i8259.h"
 #include "interrupts.h"
+#include "process.h"
 
 
 /*
@@ -52,10 +53,10 @@ void intel_page_fault()
         :
         : "%eax"
     );
-    clear_setpos(5, 10);
     printf("INTEL EXCEPT 14: Page Fault\n");
-    printf("CR2 %x\n", cr2);
-    while(1);
+    printf("Address that was accessed (CR2): %x\n", cr2);
+    get_pcb()->retval = 256;
+    halt(0);
 }
 
 /*

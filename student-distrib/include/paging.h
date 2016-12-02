@@ -64,8 +64,9 @@ typedef struct __attribute__((packed)) pte {
 
 void init_paging(void);
 
-void map_pde(uint32_t vir_addr, pde_4M_t pde);
+void map_page_4MB(uint32_t vir_addr, pde_4M_t pde);
 void map_user_video_mem(uint32_t vir_addr, pte_t pte);
+void free_user_video_mem(uint32_t vir_addr);
 void flush_tlb();
 
 /* Functions defined in Assembly */
