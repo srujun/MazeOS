@@ -52,13 +52,14 @@ halt(uint8_t status)
 
     uint32_t k_esp, esp0;
 
-    if (pcb->pid == 1) // Main process
+    /* unmap video memory if previously mapped */
+    if (pcb->vidmem_virt_addr != 0)
+        free_user_video_mem(pcb->vidmem_virt_addr);
+
+    if (pcb->parent == NULL) // Main process
     {
         esp0 = k_esp = _8MB - _4B - (pcb->pid - 1) * _8KB;
         clear_setpos(0, 0);
-
-        /* restore paging by mapping parent's page in the page directory */
-        map_pde(pcb->pde_virt_addr, pcb->pde);
 
         /* restart shell */
         execute((uint8_t *)"shell");
@@ -69,7 +70,7 @@ halt(uint8_t status)
         esp0 = pcb->parent->esp0;
 
         /* restore paging by mapping parent's page in the page directory */
-        map_pde(pcb->parent->pde_virt_addr, pcb->parent->pde);
+        map_page_4MB(pcb->parent->pde_virt_addr, pcb->parent->pde);
     }
 
     /* restore parent data */
@@ -166,6 +167,8 @@ execute(const uint8_t * command)
     void * eip = get_elf_entrypoint(dentry.inode);
 
     pcb_t pcb;
+    memset(&pcb, 0, sizeof(pcb_t));
+
     pcb.pid = get_available_pid();
     if (pcb.pid < 1 || pcb.pid > MAX_PROCESSES)
     {
@@ -174,7 +177,7 @@ execute(const uint8_t * command)
         return 0;
     }
 
-    memset(pcb.args, '\0', ARGS_LENGTH);
+    // memset(pcb.args, '\0', ARGS_LENGTH);
     if (args_length != 0)
         /* put args into pcb */
         memcpy(pcb.args, args, args_length + 1);
@@ -182,9 +185,10 @@ execute(const uint8_t * command)
 
     /* create 4MB page for new process (either at 8MB or 12MB physical) */
     pcb.pde_virt_addr = _128MB;
+    pcb.vidmem_virt_addr = 0; // vidmem = NULL
 
     /* clear the pcb's pde entry and set the bits */
-    memset(&(pcb.pde), 0, sizeof(pde_4M_t));
+    // memset(&(pcb.pde), 0, sizeof(pde_4M_t));
     pcb.pde.present = 1;
     pcb.pde.read_write = 1;
     pcb.pde.user_supervisor = 1;
@@ -217,7 +221,7 @@ execute(const uint8_t * command)
     }
 
     /* map this page in the page directory */
-    map_pde(pcb.pde_virt_addr, pcb.pde);
+    map_page_4MB(pcb.pde_virt_addr, pcb.pde);
 
     /* load the program into the 128MB virtual address with offset 0x48000 */
     load_addr = (void*)(_128MB + IMAGE_LOAD_OFFSET);
@@ -512,6 +516,7 @@ vidmap(uint8_t** screen_start)
     pte.available = 0;
 
     map_user_video_mem(USER_VIDEO_MEM_ADDR, pte);
+    get_pcb()->vidmem_virt_addr = USER_VIDEO_MEM_ADDR;
 
     *screen_start = (uint8_t*)(USER_VIDEO_MEM_ADDR);
 

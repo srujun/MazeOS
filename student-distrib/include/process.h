@@ -21,6 +21,7 @@ struct pcb {
 
     pde_4M_t pde;
     uint32_t pde_virt_addr;
+    uint32_t vidmem_virt_addr;
 
     uint32_t esp;
     uint32_t ebp;

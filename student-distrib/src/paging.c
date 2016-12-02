@@ -7,6 +7,7 @@
 
 #define SHIFT_4MB          22
 #define SHIFT_4KB          12
+#define MASK_10_BITS       0x3FF
 
 
 /* Arrays to hold the Page Directory and the table for the first 4MB section */
@@ -106,7 +107,7 @@ init_paging(void)
 
 
 /*
- * map_pde
+ * map_page_4MB
  *   DESCRIPTION: Maps the given virtual address to the entry specified by
  *                the given Page Directory Entry. Creates a 4MB page.
  *   INPUTS: vir_addr - the virtual address within the page to map
@@ -116,7 +117,7 @@ init_paging(void)
  *   SIDE EFFECTS: Flushes the x86 TLBs
  */
 void
-map_pde(uint32_t vir_addr, pde_4M_t pde)
+map_page_4MB(uint32_t vir_addr, pde_4M_t pde)
 {
     uint32_t pde_bytes;
     memcpy(&pde_bytes, &pde, sizeof(pde_4M_t));
@@ -142,6 +143,7 @@ map_user_video_mem(uint32_t vir_addr, pte_t pte)
 
     uint32_t pte_bytes;
     memcpy(&pte_bytes, &pte, sizeof(pte_t));
+    user_4MB_table[(vir_addr >> SHIFT_4KB) & MASK_10_BITS] = pte_bytes;
 
     pde_4K_t pde;
     memset(&(pde), 0, sizeof(pde_4K_t));
@@ -151,7 +153,30 @@ map_user_video_mem(uint32_t vir_addr, pte_t pte)
     pde.base_addr = ((uint32_t) user_4MB_table) >> SHIFT_4KB;
     memcpy(&page_directory[(vir_addr >> SHIFT_4MB)], &pde, sizeof(pde_4K_t));
 
-    user_4MB_table[0] = pte_bytes;
+    flush_tlb();
+}
+
+
+/*
+ * free_user_video_mem
+ *   DESCRIPTION: Unmaps the page for the 4KB video memory.
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Flushes the x86 TLBs
+ */
+void
+free_user_video_mem(uint32_t vir_addr)
+{
+    pte_t pte;
+    memset(&(pte), 0, sizeof(pte_t));
+    pte.present = 0;
+    pte.read_write = 1;
+    pte.user_supervisor = 0;
+
+    uint32_t pte_bytes;
+    memcpy(&pte_bytes, &pte, sizeof(pte_t));
+    user_4MB_table[(vir_addr >> SHIFT_4KB) & MASK_10_BITS] = pte_bytes;
 
     flush_tlb();
 }
