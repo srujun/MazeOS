@@ -9,9 +9,11 @@
 
 #define _4B               0x4
 #define _1KB              0x400
+#define _4KB              0x1000
 #define _8KB              0x2000
 #define _4MB              0x400000
 #define _8MB              0x800000
+#define _64MB             0x4000000
 #define _128MB            0x8000000
 
 int32_t printf(int8_t *format, ...);

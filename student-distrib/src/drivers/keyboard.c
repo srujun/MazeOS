@@ -4,16 +4,13 @@
  * the keyboard interrupts
  */
 
+#include "drivers/keyboard.h"
 #include "drivers/rtc.h"
+#include "drivers/terminal.h"
 #include "x86/i8259.h"
 #include "lib.h"
-#include "drivers/keyboard.h"
-#include "types.h"
 
 /* flags keeps tracks of all the special keys */
-static int buffer_size = 0;
-static uint8_t buffer[MAX_BUFFER_SIZE];
-
 static uint8_t l_shift;
 static uint8_t r_shift;
 static uint8_t caps;
@@ -21,9 +18,6 @@ static uint8_t l_ctrl;
 static uint8_t r_ctrl;
 static uint8_t l_alt;
 static uint8_t r_alt;
-
-volatile uint8_t ack;
-volatile uint8_t read_ack;
 
 /* Create an array to store the ASCII values of the inputs to be printed */
 const static unsigned char scan_code_1[2][SUPPORTED_KEYS] = {
@@ -94,11 +88,11 @@ void
 keyboard_init()
 {
     /* clear the buffer */
-    memset(buffer, '\0', MAX_BUFFER_SIZE);
+    memset(get_curr_terminal()->buffer, '\0', MAX_BUFFER_SIZE);
 
-    buffer_size = 0;
-    ack = 0;
-    read_ack = 0;
+    get_curr_terminal()->buffer_size = 0;
+    get_curr_terminal()->ack = 0;
+    get_curr_terminal()->read_ack = 0;
     l_shift = 0;
     r_shift = 0;
     caps = 0;
@@ -137,7 +131,7 @@ keyboard_interrupt_handler()
         return;
     }
 
-    if (read_ack)
+    if (get_curr_terminal()->read_ack)
     {
         /* check if user has pressed any control code combinations */
         if (check_control_codes(c))
@@ -154,17 +148,17 @@ keyboard_interrupt_handler()
         /* handle backspace input */
         if(c == BACKSPACE)
         {
-            if (buffer_size == 0)
+            if (get_curr_terminal()->buffer_size == 0)
             {
                 /* don't do backspace if buffer is empty */
                 send_eoi(KEYBOARD_IRQ);
                 enable_irq(KEYBOARD_IRQ);
                 return;
             }
-            if (read_ack)
+            if (get_curr_terminal()->read_ack)
             {
-                buffer_size--;
-                buffer[buffer_size] = '\0';
+                get_curr_terminal()->buffer_size--;
+                get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = '\0';
                 do_backspace();
             }
             send_eoi(KEYBOARD_IRQ);
@@ -175,12 +169,12 @@ keyboard_interrupt_handler()
         /* handle enter key */
         if(c == ENTER_KEYCODE)
         {
-            if (read_ack)
+            if (get_curr_terminal()->read_ack)
             {
-                buffer[buffer_size] = '\n';
-                buffer_size++;
+                get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = '\n';
+                get_curr_terminal()->buffer_size++;
             }
-            ack = 1;
+            get_curr_terminal()->ack = 1;
             putc('\n');
             send_eoi(KEYBOARD_IRQ);
             enable_irq(KEYBOARD_IRQ);
@@ -191,11 +185,11 @@ keyboard_interrupt_handler()
         print_character(c);
 
         /* check for buffer filled */
-        if(buffer_size == MAX_BUFFER_SIZE - 1)
+        if(get_curr_terminal()->buffer_size == MAX_BUFFER_SIZE - 1)
         {
-            buffer[buffer_size] = '\n';
-            buffer_size++;
-            ack = 1;
+            get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = '\n';
+            get_curr_terminal()->buffer_size++;
+            get_curr_terminal()->ack = 1;
             putc('\n');
             send_eoi(KEYBOARD_IRQ);
             enable_irq(KEYBOARD_IRQ);
@@ -226,25 +220,25 @@ int
 keyboard_read(int32_t fd, void* buf, int32_t nbytes)
 {
     /* allow buffer filling */
-    read_ack = 1;
+    get_curr_terminal()->read_ack = 1;
     /* resetting flag at every read */
-    ack = 0;
+    get_curr_terminal()->ack = 0;
     /* spin until user presses Enter or the buffer has been filled */
-    while(!ack);
+    while(!get_curr_terminal()->ack);
 
-    ack = 0;
-    read_ack = 0;
+    get_curr_terminal()->ack = 0;
+    get_curr_terminal()->read_ack = 0;
     disable_irq(KEYBOARD_IRQ);
     uint32_t size;
 
-    if(buffer_size < nbytes)
-        size = buffer_size;
+    if(get_curr_terminal()->buffer_size < nbytes)
+        size = get_curr_terminal()->buffer_size;
     else
         size = nbytes;
 
-    memcpy(buf, buffer, size);
-    memset(buffer, '\0', MAX_BUFFER_SIZE);
-    buffer_size = 0;
+    memcpy(buf, get_curr_terminal()->buffer, size);
+    memset(get_curr_terminal()->buffer, '\0', MAX_BUFFER_SIZE);
+    get_curr_terminal()->buffer_size = 0;
     enable_irq(KEYBOARD_IRQ);
 
     return size;
@@ -406,27 +400,27 @@ check_control_codes(uint8_t scan1)
     {
         if(scan1 == SCAN_L)
         {
-            memset(buffer, '\0', MAX_BUFFER_SIZE);
-            buffer_size = 0;
-            buffer[buffer_size] = CTRL_L;
-            ack = 1;
-            buffer_size = 1;
+            memset(get_curr_terminal()->buffer, '\0', MAX_BUFFER_SIZE);
+            get_curr_terminal()->buffer_size = 0;
+            get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = CTRL_L;
+            get_curr_terminal()->ack = 1;
+            get_curr_terminal()->buffer_size = 1;
         }
         else if(scan1 == SCAN_A)
         {
-            memset(buffer, '\0', MAX_BUFFER_SIZE);
-            buffer_size = 0;
-            buffer[buffer_size] = CTRL_A;
-            ack = 1;
-            buffer_size = 1;
+            memset(get_curr_terminal()->buffer, '\0', MAX_BUFFER_SIZE);
+            get_curr_terminal()->buffer_size = 0;
+            get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = CTRL_A;
+            get_curr_terminal()->ack = 1;
+            get_curr_terminal()->buffer_size = 1;
         }
         else if(scan1 == SCAN_C)
         {
-            memset(buffer, '\0', MAX_BUFFER_SIZE);
-            buffer_size = 0;
-            buffer[buffer_size] = CTRL_C;
-            ack = 1;
-            buffer_size = 1;
+            memset(get_curr_terminal()->buffer, '\0', MAX_BUFFER_SIZE);
+            get_curr_terminal()->buffer_size = 0;
+            get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = CTRL_C;
+            get_curr_terminal()->ack = 1;
+            get_curr_terminal()->buffer_size = 1;
         }
 
         /* return 1 if any CTRL key is pressed */
@@ -435,7 +429,6 @@ check_control_codes(uint8_t scan1)
 
     if(l_alt || r_alt)
     {
-        putc('[');
         return 1;
     }
 
@@ -476,10 +469,10 @@ print_character(uint8_t scan1)
         int i;
         for (i = 0; i < 4; i++)
         {
-            if (read_ack)
+            if (get_curr_terminal()->read_ack)
             {
-                buffer[buffer_size] = (' ');
-                buffer_size++;
+                get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = ' ';
+                get_curr_terminal()->buffer_size++;
             }
             putc(' ');
         }
@@ -488,10 +481,10 @@ print_character(uint8_t scan1)
             scan1 == CURSOR_LEFT || scan1 == CURSOR_DOWN);
     else
     {
-        if (read_ack)
+        if (get_curr_terminal()->read_ack)
         {
-            buffer[buffer_size] = output;
-            buffer_size++;
+            get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = output;
+            get_curr_terminal()->buffer_size++;
         }
         putc(output);
     }

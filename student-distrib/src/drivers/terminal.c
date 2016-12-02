@@ -5,9 +5,78 @@
  */
 
 #include "lib.h"
+#include "paging.h"
 #include "drivers/terminal.h"
 #include "drivers/keyboard.h"
 #include "x86/i8259.h"
+
+
+static volatile uint8_t curr_terminal = 0;
+static terminal_t terminals[MAX_TERMINALS];
+
+
+/*
+ * terminal_init TODO
+ *   DESCRIPTION: none
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+void
+terminal_init()
+{
+    int i;
+    for (i = 0; i < MAX_TERMINALS; i++)
+    {
+        terminals[i].x_pos = terminals[i].y_pos = 0;
+        terminals[i].virt_vidmem_backup = (uint8_t *)(_64MB + (i * _4KB));
+
+        terminals[i].buffer_size = 0;
+        memset(terminals[i].buffer, '\0', MAX_BUFFER_SIZE);
+
+        terminals[i].ack = 0;
+        terminals[i].read_ack = 0;
+
+        /* create mapping for backup video memory pages */
+        map_backup_vidmem(VID_BKUP_MEM_START_VIRT + (i * _4KB),
+                          VID_BKUP_MEM_START_PHYS + (i * _4KB));
+    }
+
+    curr_terminal = 0;
+}
+
+
+/*
+ * get_curr_terminal TODO
+ *   DESCRIPTION: none
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+terminal_t *
+get_curr_terminal()
+{
+    return &terminals[curr_terminal];
+}
+
+
+/*
+ * get_curr_terminal TODO
+ *   DESCRIPTION: none
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+void
+switch_active_terminal(uint8_t from, uint8_t to)
+{
+    /* backup video memory */
+    // change paging -> 
+    curr_terminal = to;
+}
 
 
 /*
@@ -25,6 +94,7 @@ terminal_open(const uint8_t* filename)
     return 0;
 }
 
+
 /*
  * terminal_close
  *   DESCRIPTION: Currently does nothing
@@ -38,6 +108,7 @@ terminal_close(int32_t fd)
 {
     return 0;
 }
+
 
 /*
  * terminal_read

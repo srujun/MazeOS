@@ -14,6 +14,7 @@
 static uint32_t page_directory[PAGE_COUNT] __attribute__((aligned(PAGE_ALIGN)));
 static uint32_t first_4MB_table[PAGE_COUNT] __attribute__((aligned(PAGE_ALIGN)));
 static uint32_t user_4MB_table[PAGE_COUNT] __attribute__((aligned(PAGE_ALIGN)));
+static uint32_t backup_vidmem_table[PAGE_COUNT] __attribute__((aligned(PAGE_ALIGN)));
 
 
 /*
@@ -179,6 +180,24 @@ free_user_video_mem(uint32_t vir_addr)
     user_4MB_table[(vir_addr >> SHIFT_4KB) & MASK_10_BITS] = pte_bytes;
 
     flush_tlb();
+}
+
+
+/*
+ * map_backup_vidmem TODO
+ *   DESCRIPTION: none
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Flushes the x86 TLBs
+ */
+void
+map_backup_vidmem(uint32_t vir_addr, uint32_t phys_addr)
+{
+    pte_t pte;
+    memset(&(pte), 0, sizeof(pte_t));
+
+    /* use backup_vidmem_table */
 }
 
 
