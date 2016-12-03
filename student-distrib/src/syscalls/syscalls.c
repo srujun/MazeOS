@@ -56,6 +56,9 @@ halt(uint8_t status)
     if (pcb->vidmem_virt_addr != 0)
         free_user_video_mem(pcb->vidmem_virt_addr);
 
+    get_term()->num_procs--;
+    get_term()->child_procs[get_term()->num_procs] = NULL;
+
     if (pcb->parent == NULL) // Main process
     {
         esp0 = k_esp = _8MB - _4B - (pcb->pid - 1) * _8KB;
@@ -210,7 +213,7 @@ execute(const uint8_t * command)
     pcb.k_ebp = pcb.k_esp = _8MB - _4B - (pcb.pid - 1) * _8KB;
 
     /* load the parent pcb pointer */
-    if (pcb.pid == 1) // we are the first process
+    if (get_term()->num_procs == 0) // we are the first process in curr terminal
         pcb.parent = NULL;
     else
     {
@@ -253,8 +256,12 @@ execute(const uint8_t * command)
         pcb.fds[i].flags = 0;
     }
 
-    /* copy the new pcb to the new kernel stack */
-    memcpy((void*)(pcb.k_esp & ESP_PCB_MASK), &pcb, sizeof(pcb_t));
+    /* copy the new pcb to the new kernel stack, also put the PCB pointer
+       in the terminal_t struct */
+    get_term()->child_procs[get_term()->num_procs] =
+                        (void*)(pcb.k_esp & ESP_PCB_MASK);
+    memcpy(get_term()->child_procs[get_term()->num_procs], &pcb, sizeof(pcb_t));
+    get_term()->num_procs++;
 
     /* context switch -> write TSS values */
     tss.esp0 = pcb.k_esp;

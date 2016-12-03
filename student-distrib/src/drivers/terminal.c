@@ -6,6 +6,7 @@
 
 #include "lib.h"
 #include "paging.h"
+#include "syscalls/syscalls.h"
 #include "drivers/terminal.h"
 #include "drivers/keyboard.h"
 #include "x86/i8259.h"
@@ -13,6 +14,8 @@
 
 static volatile uint8_t curr_terminal = 0;
 static terminal_t terminals[MAX_TERMINALS];
+
+static const uint8_t attribs[MAX_TERMINALS] = {0x9F, 0x5F, 0x4F};
 
 
 /*
@@ -26,21 +29,34 @@ static terminal_t terminals[MAX_TERMINALS];
 void
 terminal_init()
 {
-    int i;
+    int i, j;
     for (i = 0; i < MAX_TERMINALS; i++)
     {
-        terminals[i].x_pos = terminals[i].y_pos = 0;
-        terminals[i].virt_vidmem_backup = (uint8_t *)(_64MB + (i * _4KB));
+        terminals[i].x_pos = 0;
+        terminals[i].y_pos = 0;
 
         terminals[i].buffer_size = 0;
         memset(terminals[i].buffer, '\0', MAX_BUFFER_SIZE);
 
+        terminals[i].attrib = attribs[i];
+
         terminals[i].ack = 0;
         terminals[i].read_ack = 0;
 
+        for (j = 0; j < MAX_PROCESSES; j++)
+            terminals[i].child_procs[j] = NULL;
+
+        terminals[i].num_procs = 0;
+
+        terminals[i].virt_vidmem_backup =
+                    (uint8_t *)(VID_BKUP_MEM_START_VIRT + (i * _4KB));
         /* create mapping for backup video memory pages */
-        map_backup_vidmem(VID_BKUP_MEM_START_VIRT + (i * _4KB),
+        map_backup_vidmem((uint32_t)(terminals[i].virt_vidmem_backup),
                           VID_BKUP_MEM_START_PHYS + (i * _4KB));
+
+        /* write the color data to the backup memory */
+        uint32_t drawval = (attribs[i] << 8) | ' ';
+        memset_word(terminals[i].virt_vidmem_backup, drawval, _4KB / 2);
     }
 
     curr_terminal = 0;
@@ -48,7 +64,7 @@ terminal_init()
 
 
 /*
- * get_curr_terminal TODO
+ * get_term TODO
  *   DESCRIPTION: none
  *   INPUTS: none
  *   OUTPUTS: none
@@ -56,14 +72,14 @@ terminal_init()
  *   SIDE EFFECTS: none
  */
 terminal_t *
-get_curr_terminal()
+get_term()
 {
     return &terminals[curr_terminal];
 }
 
 
 /*
- * get_curr_terminal TODO
+ * switch_active_terminal TODO
  *   DESCRIPTION: none
  *   INPUTS: none
  *   OUTPUTS: none
@@ -71,11 +87,35 @@ get_curr_terminal()
  *   SIDE EFFECTS: none
  */
 void
-switch_active_terminal(uint8_t from, uint8_t to)
+switch_active_terminal(uint32_t term_num)
 {
+    if (term_num >= MAX_TERMINALS)
+    {
+        /* should never come in here... */
+        printf("Terminal does not exist\n");
+        cli();
+        while(1);
+    }
+
+    if (get_term()->num_procs != 0 && curr_terminal == term_num)
+        return;
+
     /* backup video memory */
-    // change paging -> 
-    curr_terminal = to;
+    memcpy(get_term()->virt_vidmem_backup, (void *)VIDEO_MEM_START, _4KB);
+    /* save current screen position */
+    get_term()->x_pos = get_screen_x();
+    get_term()->y_pos = get_screen_y();
+
+    /* change current terminal number */
+    curr_terminal = term_num;
+
+    /* load the new terminal's backed up screen */
+    clear_setpos(get_term()->x_pos, get_term()->y_pos);
+    memcpy((void *)VIDEO_MEM_START, get_term()->virt_vidmem_backup, _4KB);
+    
+    /* execute new shell if no process exists in this terminal */
+    if (get_term()->num_procs == 0)
+        execute((uint8_t *)"shell");
 }
 
 

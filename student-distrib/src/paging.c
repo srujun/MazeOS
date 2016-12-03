@@ -4,6 +4,7 @@
 
 #include "paging.h"
 #include "lib.h"
+#include "drivers/terminal.h"
 
 #define SHIFT_4MB          22
 #define SHIFT_4KB          12
@@ -64,6 +65,16 @@ init_paging(void)
 
     for (i = 0; i < PAGE_COUNT; i++)
         memcpy(&user_4MB_table[i], &user_pte, sizeof(pte_t));
+
+    /* Initialize the 4KB PTE's for the vidmem backup 4KB page table */
+    pte_t vidmem_pte;
+    memset(&(vidmem_pte), 0, sizeof(pte_t));
+    vidmem_pte.present = 0;
+    vidmem_pte.read_write = 1;
+    vidmem_pte.user_supervisor = 0;
+
+    for (i = 0; i < PAGE_COUNT; i++)
+        memcpy(&backup_vidmem_table[i], &vidmem_pte, sizeof(pte_t));
 
     /* Initialize video memory pages (32KB) starting at 0xB8000,
        to present, Read/Write, Supervisor */
@@ -196,8 +207,24 @@ map_backup_vidmem(uint32_t vir_addr, uint32_t phys_addr)
 {
     pte_t pte;
     memset(&(pte), 0, sizeof(pte_t));
+    pte.present = 1;
+    pte.read_write = 1;
+    pte.user_supervisor = 0;
+    pte.base_addr = phys_addr >> SHIFT_4KB;
 
-    /* use backup_vidmem_table */
+    uint32_t pte_bytes;
+    memcpy(&pte_bytes, &pte, sizeof(pte_t));
+    backup_vidmem_table[(vir_addr >> SHIFT_4KB) & MASK_10_BITS] = pte_bytes;
+
+    pde_4K_t pde;
+    memset(&(pde), 0, sizeof(pde_4K_t));
+    pde.present = 1;
+    pde.read_write = 1;
+    pde.user_supervisor = 0;
+    pde.base_addr = ((uint32_t) backup_vidmem_table) >> SHIFT_4KB;
+    memcpy(&page_directory[(vir_addr >> SHIFT_4MB)], &pde, sizeof(pde_4K_t));
+
+    flush_tlb();
 }
 
 

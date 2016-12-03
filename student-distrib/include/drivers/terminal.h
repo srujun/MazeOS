@@ -29,8 +29,13 @@ typedef struct terminal {
     uint32_t buffer_size;
     uint8_t buffer[MAX_BUFFER_SIZE];
 
+    uint8_t attrib;
+
     volatile uint8_t ack;
     volatile uint8_t read_ack;
+
+    pcb_t * child_procs[MAX_PROCESSES];
+    uint32_t num_procs;
 } terminal_t;
 
 /* Externally visible functions */
