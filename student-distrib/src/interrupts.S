@@ -30,8 +30,8 @@ rtc_irq:
     popal;
     iret;
 
-.globl pic_irq_pit
-pic_irq_pit:
+.globl pit_irq
+pit_irq:
     pushal;
     call pit_interrupt_handler;
     popal;

@@ -88,11 +88,11 @@ void
 keyboard_init()
 {
     /* clear the buffer */
-    memset(get_term()->buffer, '\0', MAX_BUFFER_SIZE);
+    memset(active_term()->buffer, '\0', MAX_BUFFER_SIZE);
 
-    get_term()->buffer_size = 0;
-    get_term()->ack = 0;
-    get_term()->read_ack = 0;
+    active_term()->buffer_size = 0;
+    active_term()->ack = 0;
+    active_term()->read_ack = 0;
     l_shift = 0;
     r_shift = 0;
     caps = 0;
@@ -139,7 +139,7 @@ keyboard_interrupt_handler()
     }
 
     /* check if user has pressed any control code combinations */
-    if (get_term()->read_ack)
+    if (active_term()->read_ack)
     {
         if (check_control_codes(c))
         {
@@ -155,17 +155,17 @@ keyboard_interrupt_handler()
         /* handle backspace input */
         if(c == BACKSPACE)
         {
-            if (get_term()->buffer_size == 0)
+            if (active_term()->buffer_size == 0)
             {
                 /* don't do backspace if buffer is empty */
                 send_eoi(KEYBOARD_IRQ);
                 enable_irq(KEYBOARD_IRQ);
                 return;
             }
-            if (get_term()->read_ack)
+            if (active_term()->read_ack)
             {
-                get_term()->buffer_size--;
-                get_term()->buffer[get_term()->buffer_size] = '\0';
+                active_term()->buffer_size--;
+                active_term()->buffer[active_term()->buffer_size] = '\0';
                 do_backspace();
             }
             send_eoi(KEYBOARD_IRQ);
@@ -176,12 +176,12 @@ keyboard_interrupt_handler()
         /* handle enter key */
         if(c == ENTER_KEYCODE)
         {
-            if (get_term()->read_ack)
+            if (active_term()->read_ack)
             {
-                get_term()->buffer[get_term()->buffer_size] = '\n';
-                get_term()->buffer_size++;
+                active_term()->buffer[active_term()->buffer_size] = '\n';
+                active_term()->buffer_size++;
             }
-            get_term()->ack = 1;
+            active_term()->ack = 1;
             putc('\n');
             send_eoi(KEYBOARD_IRQ);
             enable_irq(KEYBOARD_IRQ);
@@ -192,11 +192,11 @@ keyboard_interrupt_handler()
         print_character(c);
 
         /* check for buffer filled */
-        if(get_term()->buffer_size == MAX_BUFFER_SIZE - 1)
+        if(active_term()->buffer_size == MAX_BUFFER_SIZE - 1)
         {
-            get_term()->buffer[get_term()->buffer_size] = '\n';
-            get_term()->buffer_size++;
-            get_term()->ack = 1;
+            active_term()->buffer[active_term()->buffer_size] = '\n';
+            active_term()->buffer_size++;
+            active_term()->ack = 1;
             putc('\n');
             send_eoi(KEYBOARD_IRQ);
             enable_irq(KEYBOARD_IRQ);
@@ -227,25 +227,25 @@ int
 keyboard_read(int32_t fd, void* buf, int32_t nbytes)
 {
     /* allow buffer filling */
-    get_term()->read_ack = 1;
+    active_term()->read_ack = 1;
     /* resetting flag at every read */
-    get_term()->ack = 0;
+    active_term()->ack = 0;
     /* spin until user presses Enter or the buffer has been filled */
-    while(!get_term()->ack);
+    while(!active_term()->ack);
 
-    get_term()->ack = 0;
-    get_term()->read_ack = 0;
+    active_term()->ack = 0;
+    active_term()->read_ack = 0;
     disable_irq(KEYBOARD_IRQ);
     uint32_t size;
 
-    if(get_term()->buffer_size < nbytes)
-        size = get_term()->buffer_size;
+    if(active_term()->buffer_size < nbytes)
+        size = active_term()->buffer_size;
     else
         size = nbytes;
 
-    memcpy(buf, get_term()->buffer, size);
-    memset(get_term()->buffer, '\0', MAX_BUFFER_SIZE);
-    get_term()->buffer_size = 0;
+    memcpy(buf, active_term()->buffer, size);
+    memset(active_term()->buffer, '\0', MAX_BUFFER_SIZE);
+    active_term()->buffer_size = 0;
     enable_irq(KEYBOARD_IRQ);
 
     return size;
@@ -434,27 +434,27 @@ check_control_codes(uint8_t scan1)
     {
         if(scan1 == SCAN_L)
         {
-            memset(get_term()->buffer, '\0', MAX_BUFFER_SIZE);
-            get_term()->buffer_size = 0;
-            get_term()->buffer[get_term()->buffer_size] = CTRL_L;
-            get_term()->ack = 1;
-            get_term()->buffer_size = 1;
+            memset(active_term()->buffer, '\0', MAX_BUFFER_SIZE);
+            active_term()->buffer_size = 0;
+            active_term()->buffer[active_term()->buffer_size] = CTRL_L;
+            active_term()->ack = 1;
+            active_term()->buffer_size = 1;
         }
         else if(scan1 == SCAN_A)
         {
-            memset(get_term()->buffer, '\0', MAX_BUFFER_SIZE);
-            get_term()->buffer_size = 0;
-            get_term()->buffer[get_term()->buffer_size] = CTRL_A;
-            get_term()->ack = 1;
-            get_term()->buffer_size = 1;
+            memset(active_term()->buffer, '\0', MAX_BUFFER_SIZE);
+            active_term()->buffer_size = 0;
+            active_term()->buffer[active_term()->buffer_size] = CTRL_A;
+            active_term()->ack = 1;
+            active_term()->buffer_size = 1;
         }
         else if(scan1 == SCAN_C)
         {
-            memset(get_term()->buffer, '\0', MAX_BUFFER_SIZE);
-            get_term()->buffer_size = 0;
-            get_term()->buffer[get_term()->buffer_size] = CTRL_C;
-            get_term()->ack = 1;
-            get_term()->buffer_size = 1;
+            memset(active_term()->buffer, '\0', MAX_BUFFER_SIZE);
+            active_term()->buffer_size = 0;
+            active_term()->buffer[active_term()->buffer_size] = CTRL_C;
+            active_term()->ack = 1;
+            active_term()->buffer_size = 1;
         }
 
         /* return 1 if any CTRL key is pressed */
@@ -498,10 +498,10 @@ print_character(uint8_t scan1)
         int i;
         for (i = 0; i < 4; i++)
         {
-            if (get_term()->read_ack)
+            if (active_term()->read_ack)
             {
-                get_term()->buffer[get_term()->buffer_size] = ' ';
-                get_term()->buffer_size++;
+                active_term()->buffer[active_term()->buffer_size] = ' ';
+                active_term()->buffer_size++;
             }
             putc(' ');
         }
@@ -510,10 +510,10 @@ print_character(uint8_t scan1)
             scan1 == CURSOR_LEFT || scan1 == CURSOR_DOWN);
     else
     {
-        if (get_term()->read_ack)
+        if (active_term()->read_ack)
         {
-            get_term()->buffer[get_term()->buffer_size] = output;
-            get_term()->buffer_size++;
+            active_term()->buffer[active_term()->buffer_size] = output;
+            active_term()->buffer_size++;
         }
         putc(output);
     }

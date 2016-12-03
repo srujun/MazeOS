@@ -64,7 +64,7 @@ terminal_init()
 
 
 /*
- * get_term TODO
+ * active_term TODO
  *   DESCRIPTION: none
  *   INPUTS: none
  *   OUTPUTS: none
@@ -72,9 +72,31 @@ terminal_init()
  *   SIDE EFFECTS: none
  */
 terminal_t *
-get_term()
+active_term()
 {
     return &terminals[curr_terminal];
+}
+
+
+/*
+ * active_term TODO
+ *   DESCRIPTION: none
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+terminal_t *
+get_term(uint32_t term_num)
+{
+    if (term_num >= MAX_TERMINALS)
+    {
+        /* should never come in here... */
+        printf("Terminal does not exist\n");
+        cli();
+        while(1);
+    }
+    return &terminals[term_num];
 }
 
 
@@ -97,24 +119,24 @@ switch_active_terminal(uint32_t term_num)
         while(1);
     }
 
-    if (get_term()->num_procs != 0 && curr_terminal == term_num)
+    if (active_term()->num_procs != 0 && curr_terminal == term_num)
         return;
 
     /* backup video memory */
-    memcpy(get_term()->virt_vidmem_backup, (void *)VIDEO_MEM_START, _4KB);
+    memcpy(active_term()->virt_vidmem_backup, (void *)VIDEO_MEM_START, _4KB);
     /* save current screen position */
-    get_term()->x_pos = get_screen_x();
-    get_term()->y_pos = get_screen_y();
+    active_term()->x_pos = get_screen_x();
+    active_term()->y_pos = get_screen_y();
 
     /* change current terminal number */
     curr_terminal = term_num;
 
     /* load the new terminal's backed up screen */
-    clear_setpos(get_term()->x_pos, get_term()->y_pos);
-    memcpy((void *)VIDEO_MEM_START, get_term()->virt_vidmem_backup, _4KB);
+    clear_setpos(active_term()->x_pos, active_term()->y_pos);
+    memcpy((void *)VIDEO_MEM_START, active_term()->virt_vidmem_backup, _4KB);
     
     /* execute new shell if no process exists in this terminal */
-    if (get_term()->num_procs == 0)
+    if (active_term()->num_procs == 0)
         execute((uint8_t *)"shell");
 }
 

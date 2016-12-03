@@ -35,7 +35,7 @@ INTEL_EXCEPTION(intel_exception_9,  "EXCEPT 9: Coprocessor segment overrun");
 INTEL_EXCEPTION(intel_exception_10, "EXCEPT 10: Invalid TSS");
 INTEL_EXCEPTION(intel_exception_11, "EXCEPT 11: Segment not present");
 INTEL_EXCEPTION(intel_exception_12, "EXCEPT 12: Stack fault");
-INTEL_EXCEPTION(intel_exception_13, "EXCEPT 13: General protection exception");
+// INTEL_EXCEPTION(intel_exception_13, "EXCEPT 13: General protection exception");
 // INTEL_EXCEPTION(intel_exception_14, "EXCEPT 14: Page fault");
 /* 15 is Intel reserved */
 INTEL_EXCEPTION(intel_exception_16, "EXCEPT 16: FPU Floating Point Error");
@@ -57,6 +57,13 @@ void intel_page_fault()
     printf("Address that was accessed (CR2): %x\n", cr2);
     get_pcb()->retval = 256;
     halt(0);
+}
+
+void intel_gpf()
+{
+    printf("INTEL EXCEPT 13: General protection exception\n");
+    cli();
+    while(1);
 }
 
 /*
@@ -101,7 +108,7 @@ initialize_idt() {
                 SET_IDT_ENTRY(idt[i], &rtc_irq);
             /* PIT */
             else if (i == PIC_IRQ_START + PIT_IRQ)
-                SET_IDT_ENTRY(idt[i], &pic_irq_pit);
+                SET_IDT_ENTRY(idt[i], &pit_irq);
             /* unimplemented master PIC IRQs */
             else if (i <= PIC_IRQ_MASTER_END)
                 SET_IDT_ENTRY(idt[i], &pic_irq_master);
@@ -138,7 +145,8 @@ initialize_idt() {
     SET_IDT_ENTRY(idt[10], &intel_exception_10);
     SET_IDT_ENTRY(idt[11], &intel_exception_11);
     SET_IDT_ENTRY(idt[12], &intel_exception_12);
-    SET_IDT_ENTRY(idt[13], &intel_exception_13);
+    // SET_IDT_ENTRY(idt[13], &intel_exception_13);
+    SET_IDT_ENTRY(idt[13], &intel_gpf);
     // SET_IDT_ENTRY(idt[14], &intel_exception_14);
     SET_IDT_ENTRY(idt[14], &intel_page_fault);
     /* 15 is Intel reserved */

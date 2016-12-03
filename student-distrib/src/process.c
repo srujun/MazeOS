@@ -6,6 +6,7 @@
 
 static uint8_t available_pids[MAX_PROCESSES] = {0};
 
+static volatile uint32_t exec_term = 0;
 
 /*
  * get_pcb
@@ -110,8 +111,25 @@ pit_interrupt_handler(void)
     send_eoi(PIT_IRQ);
 
     cli();
-    context_switch();
+
+    /* calculate the next terminal's process to execute */
+    uint32_t next_term = exec_term + 1;
+    while (next_term != exec_term)
+    {
+        if (next_term >= MAX_TERMINALS)
+            next_term = 0;
+
+        if (get_term(next_term)->num_procs > 0)
+        {
+            context_switch(next_term);
+            break;
+        }
+
+        next_term++;
+    }
+
     sti();
+    return;
 }
 
 
@@ -123,7 +141,28 @@ pit_interrupt_handler(void)
  *   RETURN VALUE: none
  *   SIDE EFFECTS: none
  */
-void context_switch(void)
+void
+context_switch(uint32_t next_term)
 {
+
+    /* save current process' state */
+
+    /* change userspace 128MB page's mapping to next proccess */
+    uint32_t num_procs = get_term(next_term)->num_procs;
+    map_page_4MB(get_term(next_term)->child_procs[num_procs]->pde_virt_addr,
+                 get_term(next_term)->child_procs[num_procs]->pde);
+
+    /* if video memory was mapped for current process, unmap that */
+    /* if video memory is mapped for next process, map that */
+
+    /* map vidmem to either 0xB8 or to the backup buffer */
+
+    /* update TSS ESP0 */
+
+    exec_term = next_term;
+
+    /* save the esp & ebp value for current process */
+    /* overwrite the esp & ebp value for next process */
+
     return;
 }

@@ -33,7 +33,7 @@ clear(void)
     int32_t i;
     for(i=0; i<NUM_ROWS*NUM_COLS; i++) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
-        *(uint8_t *)(video_mem + (i << 1) + 1) = get_term()->attrib;
+        *(uint8_t *)(video_mem + (i << 1) + 1) = active_term()->attrib;
     }
 }
 
@@ -253,7 +253,7 @@ putc(uint8_t c)
     {
         *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1)) = c;
         *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1) + 1) =
-                    get_term()->attrib;
+                    active_term()->attrib;
         screen_x++;
         if(screen_x >= NUM_COLS)
         {
@@ -294,7 +294,7 @@ shift_display()
     {
         *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1)) = ' ';
         *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1) + 1) =
-                    get_term()->attrib;
+                    active_term()->attrib;
     }
 }
 
