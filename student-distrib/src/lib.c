@@ -3,11 +3,11 @@
  */
 
 #include "lib.h"
+#include "drivers/terminal.h"
 
 #define VIDEO           0xB8000
 #define NUM_COLS        80
 #define NUM_ROWS        25
-#define ATTRIB          0x7
 
 #define CURSOR_PORT     0x3D4
 #define CURSOR_REG_HIGH 0x0E
@@ -33,7 +33,7 @@ clear(void)
     int32_t i;
     for(i=0; i<NUM_ROWS*NUM_COLS; i++) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
-        *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
+        *(uint8_t *)(video_mem + (i << 1) + 1) = get_term()->attrib;
     }
 }
 
@@ -52,6 +52,34 @@ clear_setpos(int x, int y) {
     screen_x = x;
     screen_y = y;
     update_cursor(screen_x, screen_y);
+}
+
+
+/*
+ * get_screen_x TODO
+ *   DESCRIPTION: none
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+int get_screen_x()
+{
+    return screen_x;
+}
+
+
+/*
+ * get_screen_y TODO
+ *   DESCRIPTION: none
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+int get_screen_y()
+{
+    return screen_y;
 }
 
 
@@ -224,7 +252,8 @@ putc(uint8_t c)
     else
     {
         *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1)) = c;
-        *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1) + 1) = ATTRIB;
+        *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1) + 1) =
+                    get_term()->attrib;
         screen_x++;
         if(screen_x >= NUM_COLS)
         {
@@ -264,7 +293,8 @@ shift_display()
     for(j = 0; j < NUM_COLS; j++)
     {
         *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1)) = ' ';
-        *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1) + 1) = ATTRIB;
+        *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1) + 1) =
+                    get_term()->attrib;
     }
 }
 
