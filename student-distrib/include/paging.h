@@ -12,7 +12,7 @@
 #define PAGE_ALIGN                4096
 
 #define VIDEO_MEM_START           0xB8000  // start of video memory
-#define VIDEO_MEM_PG_COUNT        8    // number of pages in video memory (32KB)
+#define VIDEO_MEM_PG_COUNT        1    // number of pages in video memory (32KB)
 #define VIDEO_MEM_INDEX           (VIDEO_MEM_START / PAGE_ALIGN) // 0xB8
 
 #define KERNEL_MEM_START          _4MB // start of 4MB Kernel in memory
