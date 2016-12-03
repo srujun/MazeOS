@@ -10,6 +10,7 @@
 #include "types.h"
 #include "lib.h"
 #include "filesystem.h"
+#include "process.h"
 #include "drivers/keyboard.h"
 
 #define MAX_TERMINALS  3
@@ -33,8 +34,8 @@ typedef struct terminal {
 } terminal_t;
 
 /* Externally visible functions */
-terminal_t * get_curr_terminal();
-void switch_active_terminal(uint8_t from, uint8_t to);
+terminal_t * get_term();
+void switch_active_terminal(uint32_t term_num);
 void terminal_init();
 
 /* System calls */

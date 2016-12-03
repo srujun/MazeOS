@@ -88,11 +88,11 @@ void
 keyboard_init()
 {
     /* clear the buffer */
-    memset(get_curr_terminal()->buffer, '\0', MAX_BUFFER_SIZE);
+    memset(get_term()->buffer, '\0', MAX_BUFFER_SIZE);
 
-    get_curr_terminal()->buffer_size = 0;
-    get_curr_terminal()->ack = 0;
-    get_curr_terminal()->read_ack = 0;
+    get_term()->buffer_size = 0;
+    get_term()->ack = 0;
+    get_term()->read_ack = 0;
     l_shift = 0;
     r_shift = 0;
     caps = 0;
@@ -131,9 +131,16 @@ keyboard_interrupt_handler()
         return;
     }
 
-    if (get_curr_terminal()->read_ack)
+    if (check_function_keys(c))
     {
-        /* check if user has pressed any control code combinations */
+        send_eoi(KEYBOARD_IRQ);
+        enable_irq(KEYBOARD_IRQ);
+        return;
+    }
+
+    /* check if user has pressed any control code combinations */
+    if (get_term()->read_ack)
+    {
         if (check_control_codes(c))
         {
             send_eoi(KEYBOARD_IRQ);
@@ -148,17 +155,17 @@ keyboard_interrupt_handler()
         /* handle backspace input */
         if(c == BACKSPACE)
         {
-            if (get_curr_terminal()->buffer_size == 0)
+            if (get_term()->buffer_size == 0)
             {
                 /* don't do backspace if buffer is empty */
                 send_eoi(KEYBOARD_IRQ);
                 enable_irq(KEYBOARD_IRQ);
                 return;
             }
-            if (get_curr_terminal()->read_ack)
+            if (get_term()->read_ack)
             {
-                get_curr_terminal()->buffer_size--;
-                get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = '\0';
+                get_term()->buffer_size--;
+                get_term()->buffer[get_term()->buffer_size] = '\0';
                 do_backspace();
             }
             send_eoi(KEYBOARD_IRQ);
@@ -169,12 +176,12 @@ keyboard_interrupt_handler()
         /* handle enter key */
         if(c == ENTER_KEYCODE)
         {
-            if (get_curr_terminal()->read_ack)
+            if (get_term()->read_ack)
             {
-                get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = '\n';
-                get_curr_terminal()->buffer_size++;
+                get_term()->buffer[get_term()->buffer_size] = '\n';
+                get_term()->buffer_size++;
             }
-            get_curr_terminal()->ack = 1;
+            get_term()->ack = 1;
             putc('\n');
             send_eoi(KEYBOARD_IRQ);
             enable_irq(KEYBOARD_IRQ);
@@ -185,11 +192,11 @@ keyboard_interrupt_handler()
         print_character(c);
 
         /* check for buffer filled */
-        if(get_curr_terminal()->buffer_size == MAX_BUFFER_SIZE - 1)
+        if(get_term()->buffer_size == MAX_BUFFER_SIZE - 1)
         {
-            get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = '\n';
-            get_curr_terminal()->buffer_size++;
-            get_curr_terminal()->ack = 1;
+            get_term()->buffer[get_term()->buffer_size] = '\n';
+            get_term()->buffer_size++;
+            get_term()->ack = 1;
             putc('\n');
             send_eoi(KEYBOARD_IRQ);
             enable_irq(KEYBOARD_IRQ);
@@ -220,25 +227,25 @@ int
 keyboard_read(int32_t fd, void* buf, int32_t nbytes)
 {
     /* allow buffer filling */
-    get_curr_terminal()->read_ack = 1;
+    get_term()->read_ack = 1;
     /* resetting flag at every read */
-    get_curr_terminal()->ack = 0;
+    get_term()->ack = 0;
     /* spin until user presses Enter or the buffer has been filled */
-    while(!get_curr_terminal()->ack);
+    while(!get_term()->ack);
 
-    get_curr_terminal()->ack = 0;
-    get_curr_terminal()->read_ack = 0;
+    get_term()->ack = 0;
+    get_term()->read_ack = 0;
     disable_irq(KEYBOARD_IRQ);
     uint32_t size;
 
-    if(get_curr_terminal()->buffer_size < nbytes)
-        size = get_curr_terminal()->buffer_size;
+    if(get_term()->buffer_size < nbytes)
+        size = get_term()->buffer_size;
     else
         size = nbytes;
 
-    memcpy(buf, get_curr_terminal()->buffer, size);
-    memset(get_curr_terminal()->buffer, '\0', MAX_BUFFER_SIZE);
-    get_curr_terminal()->buffer_size = 0;
+    memcpy(buf, get_term()->buffer, size);
+    memset(get_term()->buffer, '\0', MAX_BUFFER_SIZE);
+    get_term()->buffer_size = 0;
     enable_irq(KEYBOARD_IRQ);
 
     return size;
@@ -385,6 +392,33 @@ check_modifier_keys(uint8_t scan1, uint8_t scan2)
 
 
 /*
+ * check_function_keys TODO
+ *   DESCRIPTION: none
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+int32_t
+check_function_keys(uint8_t scan1)
+{
+    if(l_alt || r_alt)
+    {
+        if (scan1 >= FUNCTION_1 && scan1 <= FUNCTION_3)
+        {
+            send_eoi(KEYBOARD_IRQ);
+            enable_irq(KEYBOARD_IRQ);
+            switch_active_terminal(scan1 - FUNCTION_1);
+            return 1;
+        }
+    }
+
+    /* will not come here if terminal was switched */
+    return 0;
+}
+
+
+/*
  * check_control_codes
  *   DESCRIPTION: Updates the buffer if any control codes have been detected.
  *                Currently supports - CTRL-A, CTRL-C, CTRL-L
@@ -400,35 +434,30 @@ check_control_codes(uint8_t scan1)
     {
         if(scan1 == SCAN_L)
         {
-            memset(get_curr_terminal()->buffer, '\0', MAX_BUFFER_SIZE);
-            get_curr_terminal()->buffer_size = 0;
-            get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = CTRL_L;
-            get_curr_terminal()->ack = 1;
-            get_curr_terminal()->buffer_size = 1;
+            memset(get_term()->buffer, '\0', MAX_BUFFER_SIZE);
+            get_term()->buffer_size = 0;
+            get_term()->buffer[get_term()->buffer_size] = CTRL_L;
+            get_term()->ack = 1;
+            get_term()->buffer_size = 1;
         }
         else if(scan1 == SCAN_A)
         {
-            memset(get_curr_terminal()->buffer, '\0', MAX_BUFFER_SIZE);
-            get_curr_terminal()->buffer_size = 0;
-            get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = CTRL_A;
-            get_curr_terminal()->ack = 1;
-            get_curr_terminal()->buffer_size = 1;
+            memset(get_term()->buffer, '\0', MAX_BUFFER_SIZE);
+            get_term()->buffer_size = 0;
+            get_term()->buffer[get_term()->buffer_size] = CTRL_A;
+            get_term()->ack = 1;
+            get_term()->buffer_size = 1;
         }
         else if(scan1 == SCAN_C)
         {
-            memset(get_curr_terminal()->buffer, '\0', MAX_BUFFER_SIZE);
-            get_curr_terminal()->buffer_size = 0;
-            get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = CTRL_C;
-            get_curr_terminal()->ack = 1;
-            get_curr_terminal()->buffer_size = 1;
+            memset(get_term()->buffer, '\0', MAX_BUFFER_SIZE);
+            get_term()->buffer_size = 0;
+            get_term()->buffer[get_term()->buffer_size] = CTRL_C;
+            get_term()->ack = 1;
+            get_term()->buffer_size = 1;
         }
 
         /* return 1 if any CTRL key is pressed */
-        return 1;
-    }
-
-    if(l_alt || r_alt)
-    {
         return 1;
     }
 
@@ -469,10 +498,10 @@ print_character(uint8_t scan1)
         int i;
         for (i = 0; i < 4; i++)
         {
-            if (get_curr_terminal()->read_ack)
+            if (get_term()->read_ack)
             {
-                get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = ' ';
-                get_curr_terminal()->buffer_size++;
+                get_term()->buffer[get_term()->buffer_size] = ' ';
+                get_term()->buffer_size++;
             }
             putc(' ');
         }
@@ -481,10 +510,10 @@ print_character(uint8_t scan1)
             scan1 == CURSOR_LEFT || scan1 == CURSOR_DOWN);
     else
     {
-        if (get_curr_terminal()->read_ack)
+        if (get_term()->read_ack)
         {
-            get_curr_terminal()->buffer[get_curr_terminal()->buffer_size] = output;
-            get_curr_terminal()->buffer_size++;
+            get_term()->buffer[get_term()->buffer_size] = output;
+            get_term()->buffer_size++;
         }
         putc(output);
     }
