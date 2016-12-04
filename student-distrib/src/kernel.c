@@ -197,7 +197,7 @@ entry (unsigned long magic, unsigned long addr)
     fs_init((void *)fs_start_addr, (void *)fs_end_addr);
 
 	/* Execute the first program (`shell') ... */
-    switch_active_terminal(0);
+    execute((uint8_t *)"shell");
 
     /* Test Page Fault */
     /*int* j = NULL;

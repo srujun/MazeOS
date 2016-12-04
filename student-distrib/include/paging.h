@@ -8,6 +8,9 @@
 #include "types.h"
 #include "lib.h"
 
+#define SHIFT_4MB                 22
+#define SHIFT_4KB                 12
+
 #define PAGE_COUNT                1024
 #define PAGE_ALIGN                4096
 
@@ -69,6 +72,7 @@ typedef struct __attribute__((packed)) pte {
 void init_paging(void);
 
 void map_page_4MB(uint32_t vir_addr, pde_4M_t pde);
+void map_actual_vidmem(uint32_t phys_addr);
 void map_user_video_mem(uint32_t vir_addr, pte_t pte);
 void free_user_video_mem(uint32_t vir_addr);
 void map_backup_vidmem(uint32_t vir_addr, uint32_t phys_addr);

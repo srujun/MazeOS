@@ -25,6 +25,7 @@ typedef struct terminal {
     uint32_t x_pos;
     uint32_t y_pos;
     uint8_t * virt_vidmem_backup;
+    uint32_t phys_vidmem_backup;
 
     uint32_t buffer_size;
     uint8_t buffer[MAX_BUFFER_SIZE];

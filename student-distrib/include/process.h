@@ -21,6 +21,7 @@
 #define PIT_CMD_VAL            0x36
 /* 25 ms = 40 Hz */
 #define PIT_25MS               (PIT_BASE_FREQ / 40)
+#define PIT_200MS              (PIT_BASE_FREQ / 5)
 
 typedef struct pcb pcb_t;
 struct pcb {
@@ -31,6 +32,7 @@ struct pcb {
 
     pde_4M_t pde;
     uint32_t pde_virt_addr;
+    pte_t vidmem_pte;
     uint32_t vidmem_virt_addr;
 
     uint32_t esp;

@@ -83,6 +83,34 @@ int get_screen_y()
 }
 
 
+/*
+ * set_screen_x TODO
+ *   DESCRIPTION: none
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+void set_screen_x(int xval)
+{
+    screen_x = xval;
+}
+
+
+/*
+ * set_screen_y TODO
+ *   DESCRIPTION: none
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+void set_screen_y(int yval)
+{
+    screen_y = yval;
+}
+
+
 /* Standard printf().
  * Only supports the following format strings:
  * %%  - print a literal '%' character

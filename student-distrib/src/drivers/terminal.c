@@ -50,9 +50,11 @@ terminal_init()
 
         terminals[i].virt_vidmem_backup =
                     (uint8_t *)(VID_BKUP_MEM_START_VIRT + (i * _4KB));
+        terminals[i].phys_vidmem_backup =
+                    (VID_BKUP_MEM_START_PHYS + (i * _4KB));
         /* create mapping for backup video memory pages */
         map_backup_vidmem((uint32_t)(terminals[i].virt_vidmem_backup),
-                          VID_BKUP_MEM_START_PHYS + (i * _4KB));
+                          terminals[i].phys_vidmem_backup);
 
         /* write the color data to the backup memory */
         uint32_t drawval = (attribs[i] << 8) | ' ';
@@ -111,6 +113,8 @@ get_term(uint32_t term_num)
 void
 switch_active_terminal(uint32_t term_num)
 {
+    cli();
+
     if (term_num >= MAX_TERMINALS)
     {
         /* should never come in here... */
@@ -122,14 +126,34 @@ switch_active_terminal(uint32_t term_num)
     if (active_term()->num_procs != 0 && curr_terminal == term_num)
         return;
 
+    uint32_t term_procs = active_term()->num_procs;
+
     /* backup video memory */
     memcpy(active_term()->virt_vidmem_backup, (void *)VIDEO_MEM_START, _4KB);
     /* save current screen position */
     active_term()->x_pos = get_screen_x();
     active_term()->y_pos = get_screen_y();
 
+    /* if vidmap was created for current terminal, map that to backup */
+    if (active_term()->child_procs[term_procs-1]->vidmem_virt_addr != 0)
+    {
+        pte_t pte;
+        memset(&(pte), 0, sizeof(pte_t));
+
+        /* create the video memory page with user access */
+        pte.present = 1;
+        pte.read_write = 1;
+        pte.user_supervisor = 1;
+        pte.base_addr = active_term()->phys_vidmem_backup >> SHIFT_4KB;
+        map_user_video_mem(
+            active_term()->child_procs[term_procs-1]->vidmem_virt_addr, pte);
+    }
+
     /* change current terminal number */
     curr_terminal = term_num;
+
+    /* update terminal processes */
+    term_procs = active_term()->num_procs;
 
     /* load the new terminal's backed up screen */
     clear_setpos(active_term()->x_pos, active_term()->y_pos);
@@ -138,6 +162,25 @@ switch_active_terminal(uint32_t term_num)
     /* execute new shell if no process exists in this terminal */
     if (active_term()->num_procs == 0)
         execute((uint8_t *)"shell");
+    else
+    {
+        /* if vidmap was created for next terminal process, restore mapping */
+        if (active_term()->child_procs[term_procs-1]->vidmem_virt_addr != 0)
+        {
+            pte_t pte;
+            memset(&(pte), 0, sizeof(pte_t));
+
+            /* create the video memory page with user access */
+            pte.present = 1;
+            pte.read_write = 1;
+            pte.user_supervisor = 1;
+            pte.base_addr = VIDEO_MEM_INDEX;
+            map_user_video_mem(
+                active_term()->child_procs[term_procs-1]->vidmem_virt_addr, pte);
+        }
+    }
+
+    sti();
 }
 
 

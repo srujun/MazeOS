@@ -6,8 +6,6 @@
 #include "lib.h"
 #include "drivers/terminal.h"
 
-#define SHIFT_4MB          22
-#define SHIFT_4KB          12
 #define MASK_10_BITS       0x3FF
 
 
@@ -139,6 +137,31 @@ map_page_4MB(uint32_t vir_addr, pde_4M_t pde)
 
 
 /*
+ * map_actual_vidmem TODO
+ *   DESCRIPTION: Changes 0xB8000 to the given physical address
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: Flushes the x86 TLBs
+ */
+void
+map_actual_vidmem(uint32_t phys_addr)
+{
+    pte_t video_mem_pte;
+    memset(&(video_mem_pte), 0, sizeof(pte_t));
+    video_mem_pte.present = 1;
+    video_mem_pte.read_write = 1;
+    video_mem_pte.user_supervisor = 0;
+
+    video_mem_pte.base_addr = phys_addr >> SHIFT_4KB;
+    memcpy(&first_4MB_table[VIDEO_MEM_INDEX],
+           &video_mem_pte, sizeof(pte_t));
+
+    flush_tlb();
+}
+
+
+/*
  * map_user_video_mem
  *   DESCRIPTION: Maps the given virtual address to the video memory and creates
  *                a 4KB page entry for it.
@@ -151,8 +174,6 @@ map_page_4MB(uint32_t vir_addr, pde_4M_t pde)
 void
 map_user_video_mem(uint32_t vir_addr, pte_t pte)
 {
-    pte.base_addr = VIDEO_MEM_INDEX;
-
     uint32_t pte_bytes;
     memcpy(&pte_bytes, &pte, sizeof(pte_t));
     user_4MB_table[(vir_addr >> SHIFT_4KB) & MASK_10_BITS] = pte_bytes;

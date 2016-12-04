@@ -33,6 +33,9 @@ halt(uint8_t status)
 {
     int i;
     int32_t retval;
+
+    cli();
+
     pcb_t * pcb = get_pcb();
 
     if (pcb->retval == RETURN_EXCEPTION)
@@ -108,6 +111,9 @@ int32_t
 execute(const uint8_t * command)
 {
     uint32_t ret_kesp, ret_kebp;
+
+    cli();
+
     asm volatile (
         "movl %%esp, %0     \n\t"
         "movl %%ebp, %1     \n\t"
@@ -521,9 +527,11 @@ vidmap(uint8_t** screen_start)
     pte.dirty = 0;
     pte.global = 0;
     pte.available = 0;
+    pte.base_addr = VIDEO_MEM_INDEX;
 
     map_user_video_mem(USER_VIDEO_MEM_ADDR, pte);
     get_pcb()->vidmem_virt_addr = USER_VIDEO_MEM_ADDR;
+    get_pcb()->vidmem_pte = pte;
 
     *screen_start = (uint8_t*)(USER_VIDEO_MEM_ADDR);
 

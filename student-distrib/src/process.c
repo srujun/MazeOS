@@ -1,7 +1,10 @@
 /* process.c - Implementations of process functions */
 
 #include "process.h"
+#include "paging.h"
+#include "drivers/terminal.h"
 #include "x86/i8259.h"
+#include "x86/x86_desc.h"
 #include "syscalls/syscalls.h"
 
 static uint8_t available_pids[MAX_PROCESSES] = {0};
@@ -90,8 +93,8 @@ pit_init(void)
     outb(PIT_CMD_VAL, PIT_CMD_REG);
     /* write the interrupt frequency to the PIT */
     /* lower 8 bits first, then high 8 bits */
-    outb(PIT_25MS & 0xFF, PIT_CHANNEL0_REG);
-    outb(PIT_25MS >> 8, PIT_CHANNEL0_REG);
+    outb(PIT_200MS & 0xFF, PIT_CHANNEL0_REG);
+    outb(PIT_200MS >> 8, PIT_CHANNEL0_REG);
 
     enable_irq(PIT_IRQ);
 }
@@ -116,9 +119,6 @@ pit_interrupt_handler(void)
     uint32_t next_term = exec_term + 1;
     while (next_term != exec_term)
     {
-        if (next_term >= MAX_TERMINALS)
-            next_term = 0;
-
         if (get_term(next_term)->num_procs > 0)
         {
             context_switch(next_term);
@@ -126,10 +126,11 @@ pit_interrupt_handler(void)
         }
 
         next_term++;
+        if (next_term >= MAX_TERMINALS)
+            next_term = 0;
     }
 
     sti();
-    return;
 }
 
 
@@ -144,25 +145,50 @@ pit_interrupt_handler(void)
 void
 context_switch(uint32_t next_term)
 {
+    pcb_t * old_pcb;
+    pcb_t * new_pcb;
+    uint32_t num_procs;
+
+    num_procs = get_term(next_term)->num_procs;
+    old_pcb = get_pcb();
+    new_pcb = get_term(next_term)->child_procs[num_procs - 1];
 
     /* save current process' state */
+    get_term(exec_term)->x_pos = get_screen_x();
+    get_term(exec_term)->x_pos = get_screen_y();
 
     /* change userspace 128MB page's mapping to next proccess */
-    uint32_t num_procs = get_term(next_term)->num_procs;
-    map_page_4MB(get_term(next_term)->child_procs[num_procs]->pde_virt_addr,
-                 get_term(next_term)->child_procs[num_procs]->pde);
+    map_page_4MB(new_pcb->pde_virt_addr, new_pcb->pde);
 
-    /* if video memory was mapped for current process, unmap that */
-    /* if video memory is mapped for next process, map that */
-
-    /* map vidmem to either 0xB8 or to the backup buffer */
-
-    /* update TSS ESP0 */
+    /* map 0xB8000 to physical 0xB8000 or to the backup buffer
+       for the previous process */
+    if (get_term(next_term) == active_term())
+        /* we are switching to an active terminal's process */
+        map_actual_vidmem(VIDEO_MEM_START);
+    else
+        /* new terminal is inactive */
+        map_actual_vidmem(get_term(next_term)->phys_vidmem_backup);
 
     exec_term = next_term;
 
-    /* save the esp & ebp value for current process */
-    /* overwrite the esp & ebp value for next process */
+    set_screen_x(get_term(exec_term)->x_pos);
+    set_screen_y(get_term(exec_term)->y_pos);
 
-    return;
+    /* update TSS ESP0 */
+    tss.esp0 = new_pcb->esp;
+
+    /* save old process' ESP and EBP */
+    asm volatile (
+        "movl %%esp, %0        \n\t"
+        "movl %%ebp, %1        \n\t"
+        : "=r" (old_pcb->esp), "=r" (old_pcb->ebp)
+    );
+
+    /* overwrite the esp & ebp value for next process */
+    asm volatile (
+        "movl %0, %%esp        \n\t"
+        "movl %1, %%ebp        \n\t"
+        :
+        : "r" (new_pcb->esp), "r" (new_pcb->ebp)
+    );
 }

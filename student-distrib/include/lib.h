@@ -29,6 +29,8 @@ void clear(void);
 void clear_setpos(int x, int y);
 int get_screen_x();
 int get_screen_y();
+void set_screen_x(int);
+void set_screen_y(int);
 
 void* memset(void* s, int32_t c, uint32_t n);
 void* memset_word(void* s, int32_t c, uint32_t n);

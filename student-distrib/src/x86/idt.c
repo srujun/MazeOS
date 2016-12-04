@@ -54,7 +54,7 @@ void intel_page_fault()
         : "%eax"
     );
     printf("INTEL EXCEPT 14: Page Fault\n");
-    printf("Address that was accessed (CR2): %x\n", cr2);
+    printf("Address that was accessed (CR2): 0x%x\n", cr2);
     get_pcb()->retval = 256;
     halt(0);
 }
