@@ -93,8 +93,8 @@ pit_init(void)
     outb(PIT_CMD_VAL, PIT_CMD_REG);
     /* write the interrupt frequency to the PIT */
     /* lower 8 bits first, then high 8 bits */
-    outb(PIT_200MS & 0xFF, PIT_CHANNEL0_REG);
-    outb(PIT_200MS >> 8, PIT_CHANNEL0_REG);
+    outb(PIT_25MS & 0xFF, PIT_CHANNEL0_REG);
+    outb(PIT_25MS >> 8, PIT_CHANNEL0_REG);
 
     enable_irq(PIT_IRQ);
 }
@@ -111,12 +111,15 @@ pit_init(void)
 void
 pit_interrupt_handler(void)
 {
+    // printf("PIT!\n");
     send_eoi(PIT_IRQ);
 
     cli();
 
     /* calculate the next terminal's process to execute */
     uint32_t next_term = exec_term + 1;
+    if (next_term >= MAX_TERMINALS)
+        next_term = 0;
     while (next_term != exec_term)
     {
         if (get_term(next_term)->num_procs > 0)
@@ -131,6 +134,36 @@ pit_interrupt_handler(void)
     }
 
     sti();
+}
+
+
+/*
+ * get_exec_term_num
+ *   DESCRIPTION: TODO
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+uint32_t
+get_exec_term_num()
+{
+    return exec_term;
+}
+
+
+/*
+ * set_exec_term_num
+ *   DESCRIPTION: TODO
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+void
+set_exec_term_num(uint32_t num)
+{
+    exec_term = num;
 }
 
 
@@ -154,14 +187,14 @@ context_switch(uint32_t next_term)
     new_pcb = get_term(next_term)->child_procs[num_procs - 1];
 
     /* save current process' state */
-    get_term(exec_term)->x_pos = get_screen_x();
-    get_term(exec_term)->x_pos = get_screen_y();
+    // get_term(exec_term)->x_pos = get_screen_x();
+    // get_term(exec_term)->y_pos = get_screen_y();
 
     /* change userspace 128MB page's mapping to next proccess */
     map_page_4MB(new_pcb->pde_virt_addr, new_pcb->pde);
 
     /* map 0xB8000 to physical 0xB8000 or to the backup buffer
-       for the previous process */
+       of the new process */
     if (get_term(next_term) == active_term())
         /* we are switching to an active terminal's process */
         map_actual_vidmem(VIDEO_MEM_START);
@@ -171,17 +204,17 @@ context_switch(uint32_t next_term)
 
     exec_term = next_term;
 
-    set_screen_x(get_term(exec_term)->x_pos);
-    set_screen_y(get_term(exec_term)->y_pos);
+    // set_screen_x(get_term(next_term)->x_pos);
+    // set_screen_y(get_term(next_term)->y_pos);
 
     /* update TSS ESP0 */
-    tss.esp0 = new_pcb->esp;
+    tss.esp0 = new_pcb->k_esp;
 
     /* save old process' ESP and EBP */
     asm volatile (
         "movl %%esp, %0        \n\t"
         "movl %%ebp, %1        \n\t"
-        : "=r" (old_pcb->esp), "=r" (old_pcb->ebp)
+        : "=r" (old_pcb->k_esp), "=r" (old_pcb->k_ebp)
     );
 
     /* overwrite the esp & ebp value for next process */
@@ -189,6 +222,7 @@ context_switch(uint32_t next_term)
         "movl %0, %%esp        \n\t"
         "movl %1, %%ebp        \n\t"
         :
-        : "r" (new_pcb->esp), "r" (new_pcb->ebp)
+        : "r" (new_pcb->k_esp), "r" (new_pcb->k_ebp)
+        : "%esp", "%ebp"
     );
 }

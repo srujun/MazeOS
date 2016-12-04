@@ -41,6 +41,8 @@ typedef struct terminal {
 
 /* Externally visible functions */
 terminal_t * active_term();
+uint32_t active_term_num();
+terminal_t * executing_term();
 terminal_t * get_term(uint32_t term_num);
 void switch_active_terminal(uint32_t term_num);
 void terminal_init();

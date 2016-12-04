@@ -16,8 +16,8 @@
 #define CURSOR_OFFSET   8
 
 
-static int screen_x;
-static int screen_y;
+// static volatile int screen_x;
+// static volatile int screen_y;
 static char* video_mem = (char *)VIDEO;
 
 /*
@@ -33,7 +33,7 @@ clear(void)
     int32_t i;
     for(i=0; i<NUM_ROWS*NUM_COLS; i++) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
-        *(uint8_t *)(video_mem + (i << 1) + 1) = active_term()->attrib;
+        *(uint8_t *)(video_mem + (i << 1) + 1) = executing_term()->attrib;
     }
 }
 
@@ -49,65 +49,9 @@ clear(void)
 void
 clear_setpos(int x, int y) {
     clear();
-    screen_x = x;
-    screen_y = y;
-    update_cursor(screen_x, screen_y);
-}
-
-
-/*
- * get_screen_x TODO
- *   DESCRIPTION: none
- *   INPUTS: none
- *   OUTPUTS: none
- *   RETURN VALUE: none
- *   SIDE EFFECTS: none
- */
-int get_screen_x()
-{
-    return screen_x;
-}
-
-
-/*
- * get_screen_y TODO
- *   DESCRIPTION: none
- *   INPUTS: none
- *   OUTPUTS: none
- *   RETURN VALUE: none
- *   SIDE EFFECTS: none
- */
-int get_screen_y()
-{
-    return screen_y;
-}
-
-
-/*
- * set_screen_x TODO
- *   DESCRIPTION: none
- *   INPUTS: none
- *   OUTPUTS: none
- *   RETURN VALUE: none
- *   SIDE EFFECTS: none
- */
-void set_screen_x(int xval)
-{
-    screen_x = xval;
-}
-
-
-/*
- * set_screen_y TODO
- *   DESCRIPTION: none
- *   INPUTS: none
- *   OUTPUTS: none
- *   RETURN VALUE: none
- *   SIDE EFFECTS: none
- */
-void set_screen_y(int yval)
-{
-    screen_y = yval;
+    executing_term()->x_pos = x;
+    executing_term()->y_pos = y;
+    update_cursor(executing_term()->x_pos, executing_term()->y_pos);
 }
 
 
@@ -271,28 +215,28 @@ putc(uint8_t c)
 {
     if(c == '\n' || c == '\r')
     {
-        if(screen_y == NUM_ROWS - 1)
+        if(executing_term()->y_pos == NUM_ROWS - 1)
             shift_display();
         else
-            screen_y++;
-        screen_x = 0;
+            executing_term()->y_pos++;
+        executing_term()->x_pos = 0;
     }
     else
     {
-        *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1)) = c;
-        *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1) + 1) =
-                    active_term()->attrib;
-        screen_x++;
-        if(screen_x >= NUM_COLS)
+        *(uint8_t *)(video_mem + ((NUM_COLS*executing_term()->y_pos + executing_term()->x_pos) << 1)) = c;
+        *(uint8_t *)(video_mem + ((NUM_COLS*executing_term()->y_pos + executing_term()->x_pos) << 1) + 1) =
+                    executing_term()->attrib;
+        executing_term()->x_pos++;
+        if(executing_term()->x_pos >= NUM_COLS)
         {
-            if(screen_y == NUM_ROWS - 1) // we are in the last row
+            if(executing_term()->y_pos == NUM_ROWS - 1) // we are in the last row
                 shift_display();
             else
-                screen_y++;
-            screen_x = 0;
+                executing_term()->y_pos++;
+            executing_term()->x_pos = 0;
         }
     }
-    update_cursor(screen_x, screen_y);
+    update_cursor(executing_term()->x_pos, executing_term()->y_pos);
 }
 
 /*
@@ -322,7 +266,7 @@ shift_display()
     {
         *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1)) = ' ';
         *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1) + 1) =
-                    active_term()->attrib;
+                    executing_term()->attrib;
     }
 }
 
@@ -363,25 +307,25 @@ update_cursor(int col, int row)
 void
 do_backspace()
 {
-    if(screen_x == 0 && screen_y == 0)
+    if(executing_term()->x_pos == 0 && executing_term()->y_pos == 0)
         return;
-    if(screen_x != 0)
-        screen_x--;
+    if(executing_term()->x_pos != 0)
+        executing_term()->x_pos--;
     else
     {
-        screen_y--;
-        screen_x = NUM_COLS - 1;
+        executing_term()->y_pos--;
+        executing_term()->x_pos = NUM_COLS - 1;
     }
-    update_cursor(screen_x, screen_y);
+    update_cursor(executing_term()->x_pos, executing_term()->y_pos);
     putc(' ');
-    if(screen_x != 0)
-        screen_x--;
+    if(executing_term()->x_pos != 0)
+        executing_term()->x_pos--;
     else
     {
-        screen_y--;
-        screen_x = NUM_COLS - 1;
+        executing_term()->y_pos--;
+        executing_term()->x_pos = NUM_COLS - 1;
     }
-    update_cursor(screen_x, screen_y);
+    update_cursor(executing_term()->x_pos, executing_term()->y_pos);
 }
 
 /*

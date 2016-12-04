@@ -57,6 +57,8 @@ int32_t free_pid(uint32_t pid);
 /* Scheduling functions */
 void pit_init(void);
 
+uint32_t get_exec_term_num();
+void set_exec_term_num(uint32_t num);
 void context_switch(uint32_t next_term);
 
 /* Handles the programmable interrupt timer (PIT) interrupts */

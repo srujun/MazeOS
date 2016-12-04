@@ -225,6 +225,7 @@ execute(const uint8_t * command)
     {
         pcb.parent = get_pcb();
         /* IMPORTANT: store current esp value in pcb of parent */
+        /* REVIEW */
         pcb.parent->k_esp = ret_kesp;
         pcb.parent->k_ebp = ret_kebp;
     }
@@ -262,11 +263,19 @@ execute(const uint8_t * command)
         pcb.fds[i].flags = 0;
     }
 
-    /* copy the new pcb to the new kernel stack, also put the PCB pointer
-       in the terminal_t struct */
+    /* if we're trying to create a new process on a terminal that
+       context switch thinks is not active, we set it to active */
+    if (active_term()->num_procs == 0)
+    {
+        set_exec_term_num(active_term_num());
+        map_actual_vidmem(VIDEO_MEM_START);
+    }
+
+    /* copy the new pcb to the new kernel stack */
+    memcpy((void*)(pcb.k_esp & ESP_PCB_MASK), &pcb, sizeof(pcb_t));
+    /* put the PCB pointer in the terminal_t struct */
     active_term()->child_procs[active_term()->num_procs] =
                         (void*)(pcb.k_esp & ESP_PCB_MASK);
-    memcpy(active_term()->child_procs[active_term()->num_procs], &pcb, sizeof(pcb_t));
     active_term()->num_procs++;
 
     /* context switch -> write TSS values */

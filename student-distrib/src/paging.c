@@ -152,8 +152,8 @@ map_actual_vidmem(uint32_t phys_addr)
     video_mem_pte.present = 1;
     video_mem_pte.read_write = 1;
     video_mem_pte.user_supervisor = 0;
-
     video_mem_pte.base_addr = phys_addr >> SHIFT_4KB;
+
     memcpy(&first_4MB_table[VIDEO_MEM_INDEX],
            &video_mem_pte, sizeof(pte_t));
 

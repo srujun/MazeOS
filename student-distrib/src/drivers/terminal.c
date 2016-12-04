@@ -4,10 +4,11 @@
  * the terminal driver functions
  */
 
+#include "drivers/terminal.h"
 #include "lib.h"
 #include "paging.h"
+#include "process.h"
 #include "syscalls/syscalls.h"
-#include "drivers/terminal.h"
 #include "drivers/keyboard.h"
 #include "x86/i8259.h"
 
@@ -81,6 +82,36 @@ active_term()
 
 
 /*
+ * active_term_num TODO
+ *   DESCRIPTION: none
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+uint32_t
+active_term_num()
+{
+    return curr_terminal;
+}
+
+
+/*
+ * executing_term TODO
+ *   DESCRIPTION: none
+ *   INPUTS: none
+ *   OUTPUTS: none
+ *   RETURN VALUE: none
+ *   SIDE EFFECTS: none
+ */
+terminal_t *
+executing_term()
+{
+    return &terminals[get_exec_term_num()];
+}
+
+
+/*
  * active_term TODO
  *   DESCRIPTION: none
  *   INPUTS: none
@@ -124,15 +155,21 @@ switch_active_terminal(uint32_t term_num)
     }
 
     if (active_term()->num_procs != 0 && curr_terminal == term_num)
+    {
+        enable_irq(PIT_IRQ);
         return;
+    }
 
     uint32_t term_procs = active_term()->num_procs;
 
-    /* backup video memory */
-    memcpy(active_term()->virt_vidmem_backup, (void *)VIDEO_MEM_START, _4KB);
-    /* save current screen position */
-    active_term()->x_pos = get_screen_x();
-    active_term()->y_pos = get_screen_y();
+    /* backup video memory if we are switching of the terminal
+       which was last executed within */
+    if (executing_term() == active_term())
+        memcpy(active_term()->virt_vidmem_backup,
+               (void *)VIDEO_MEM_START, _4KB);
+        /* save current screen position */
+        // active_term()->x_pos = get_screen_x();
+        // active_term()->y_pos = get_screen_y();
 
     /* if vidmap was created for current terminal, map that to backup */
     if (active_term()->child_procs[term_procs-1]->vidmem_virt_addr != 0)
@@ -151,17 +188,31 @@ switch_active_terminal(uint32_t term_num)
 
     /* change current terminal number */
     curr_terminal = term_num;
+    /* WE HAVE SWITCHED!!! */
 
     /* update terminal processes */
     term_procs = active_term()->num_procs;
 
     /* load the new terminal's backed up screen */
-    clear_setpos(active_term()->x_pos, active_term()->y_pos);
+    clear();
+    /* REVIEW: change memcpy dest depending on which process is active */
     memcpy((void *)VIDEO_MEM_START, active_term()->virt_vidmem_backup, _4KB);
     
     /* execute new shell if no process exists in this terminal */
     if (active_term()->num_procs == 0)
+    {
+        // set_screen_x(active_term()->x_pos);
+        // set_screen_y(active_term()->y_pos);
+        /* Fake context switch */
+        asm volatile (
+            "movl %%esp, %0     \n\t"
+            "movl %%ebp, %1     \n\t"
+            : "=r" (get_pcb()->k_esp), 
+              "=r" (get_pcb()->k_ebp)
+        );
         execute((uint8_t *)"shell");
+        return;
+    }
     else
     {
         /* if vidmap was created for next terminal process, restore mapping */
@@ -180,7 +231,7 @@ switch_active_terminal(uint32_t term_num)
         }
     }
 
-    sti();
+    enable_irq(PIT_IRQ);
 }
 
 
