@@ -33,7 +33,7 @@ clear(void)
     int32_t i;
     for(i=0; i<NUM_ROWS*NUM_COLS; i++) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
-        *(uint8_t *)(video_mem + (i << 1) + 1) = executing_term()->attrib;
+        *(uint8_t *)(video_mem + (i << 1) + 1) = active_term()->attrib;
     }
 }
 
@@ -49,9 +49,9 @@ clear(void)
 void
 clear_setpos(int x, int y) {
     clear();
-    executing_term()->x_pos = x;
-    executing_term()->y_pos = y;
-    update_cursor(executing_term()->x_pos, executing_term()->y_pos);
+    active_term()->x_pos = x;
+    active_term()->y_pos = y;
+    update_cursor(active_term()->x_pos, active_term()->y_pos);
 }
 
 
@@ -215,22 +215,58 @@ putc(uint8_t c)
 {
     if(c == '\n' || c == '\r')
     {
+        if(active_term()->y_pos == NUM_ROWS - 1)
+            shift_display(video_mem);
+        else
+            active_term()->y_pos++;
+        active_term()->x_pos = 0;
+    }
+    else
+    {
+        *(uint8_t *)(video_mem + ((NUM_COLS*active_term()->y_pos + active_term()->x_pos) << 1)) = c;
+        *(uint8_t *)(video_mem + ((NUM_COLS*active_term()->y_pos + active_term()->x_pos) << 1) + 1) =
+                    active_term()->attrib;
+        active_term()->x_pos++;
+        if(active_term()->x_pos >= NUM_COLS)
+        {
+            if(active_term()->y_pos == NUM_ROWS - 1) // we are in the last row
+                shift_display(video_mem);
+            else
+                active_term()->y_pos++;
+            active_term()->x_pos = 0;
+        }
+    }
+    update_cursor(active_term()->x_pos, active_term()->y_pos);
+}
+
+
+/*
+* void putc(uint8_t c);
+*   Inputs: uint_8* c = character to print
+*   Return Value: void
+*	Function: Output a character to the console 
+*/
+void
+putc_buffer(uint8_t c)
+{
+    if(c == '\n' || c == '\r')
+    {
         if(executing_term()->y_pos == NUM_ROWS - 1)
-            shift_display();
+            shift_display((char*)executing_term()->virt_vidmem_backup);
         else
             executing_term()->y_pos++;
         executing_term()->x_pos = 0;
     }
     else
     {
-        *(uint8_t *)(video_mem + ((NUM_COLS*executing_term()->y_pos + executing_term()->x_pos) << 1)) = c;
-        *(uint8_t *)(video_mem + ((NUM_COLS*executing_term()->y_pos + executing_term()->x_pos) << 1) + 1) =
+        *(uint8_t *)(executing_term()->virt_vidmem_backup + ((NUM_COLS*executing_term()->y_pos + executing_term()->x_pos) << 1)) = c;
+        *(uint8_t *)(executing_term()->virt_vidmem_backup + ((NUM_COLS*executing_term()->y_pos + executing_term()->x_pos) << 1) + 1) =
                     executing_term()->attrib;
         executing_term()->x_pos++;
         if(executing_term()->x_pos >= NUM_COLS)
         {
             if(executing_term()->y_pos == NUM_ROWS - 1) // we are in the last row
-                shift_display();
+                shift_display((char*)executing_term()->virt_vidmem_backup);
             else
                 executing_term()->y_pos++;
             executing_term()->x_pos = 0;
@@ -238,6 +274,7 @@ putc(uint8_t c)
     }
     update_cursor(executing_term()->x_pos, executing_term()->y_pos);
 }
+
 
 /*
  * shift_display
@@ -251,22 +288,30 @@ putc(uint8_t c)
  *   SIDE EFFECTS: changes values in video memory
  */
 void
-shift_display()
+shift_display(char* write_mem)
 {
     int j;
 
     for(j = 1; j < NUM_ROWS; j++)
     {
-        void * dest = video_mem + ((NUM_COLS * (j - 1)) << 1);
-        void * src  = video_mem + ((NUM_COLS * j) << 1);;
+        void * dest = write_mem + ((NUM_COLS * (j - 1)) << 1);
+        void * src  = write_mem + ((NUM_COLS * j) << 1);;
         memcpy(dest, src, NUM_COLS * 2);
     }
 
     for(j = 0; j < NUM_COLS; j++)
     {
-        *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1)) = ' ';
-        *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1) + 1) =
-                    executing_term()->attrib;
+        *(uint8_t *)(write_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1)) = ' ';
+        if (write_mem == video_mem)
+        {
+            *(uint8_t *)(write_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1) + 1) =
+                        active_term()->attrib;
+        }
+        else
+        {
+            *(uint8_t *)(write_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1) + 1) =
+                        executing_term()->attrib;
+        }
     }
 }
 
@@ -307,25 +352,25 @@ update_cursor(int col, int row)
 void
 do_backspace()
 {
-    if(executing_term()->x_pos == 0 && executing_term()->y_pos == 0)
+    if(active_term()->x_pos == 0 && active_term()->y_pos == 0)
         return;
-    if(executing_term()->x_pos != 0)
-        executing_term()->x_pos--;
+    if(active_term()->x_pos != 0)
+        active_term()->x_pos--;
     else
     {
-        executing_term()->y_pos--;
-        executing_term()->x_pos = NUM_COLS - 1;
+        active_term()->y_pos--;
+        active_term()->x_pos = NUM_COLS - 1;
     }
-    update_cursor(executing_term()->x_pos, executing_term()->y_pos);
+    update_cursor(active_term()->x_pos, active_term()->y_pos);
     putc(' ');
-    if(executing_term()->x_pos != 0)
-        executing_term()->x_pos--;
+    if(active_term()->x_pos != 0)
+        active_term()->x_pos--;
     else
     {
-        executing_term()->y_pos--;
-        executing_term()->x_pos = NUM_COLS - 1;
+        active_term()->y_pos--;
+        active_term()->x_pos = NUM_COLS - 1;
     }
-    update_cursor(executing_term()->x_pos, executing_term()->y_pos);
+    update_cursor(active_term()->x_pos, active_term()->y_pos);
 }
 
 /*

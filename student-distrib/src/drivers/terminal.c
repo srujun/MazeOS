@@ -63,6 +63,9 @@ terminal_init()
     }
 
     curr_terminal = 0;
+    /* create mapping for backup video memory pages */
+    map_backup_vidmem((uint32_t)(terminals[0].virt_vidmem_backup),
+                      VIDEO_MEM_START);
 }
 
 
@@ -156,20 +159,23 @@ switch_active_terminal(uint32_t term_num)
 
     if (active_term()->num_procs != 0 && curr_terminal == term_num)
     {
-        enable_irq(PIT_IRQ);
+        sti();
         return;
     }
 
     uint32_t term_procs = active_term()->num_procs;
 
-    /* backup video memory if we are switching of the terminal
-       which was last executed within */
-    if (executing_term() == active_term())
-        memcpy(active_term()->virt_vidmem_backup,
-               (void *)VIDEO_MEM_START, _4KB);
-        /* save current screen position */
-        // active_term()->x_pos = get_screen_x();
-        // active_term()->y_pos = get_screen_y();
+    /* map backup location back to it's corresponding phys addr */
+    map_backup_vidmem(
+        (uint32_t)(active_term()->virt_vidmem_backup),
+        active_term()->phys_vidmem_backup
+    );
+
+    /* backup video memory of current terminal */
+    memcpy(active_term()->virt_vidmem_backup, (void *)VIDEO_MEM_START, _4KB);
+    /* save current screen position */
+    // active_term()->x_pos = get_screen_x();
+    // active_term()->y_pos = get_screen_y();
 
     /* if vidmap was created for current terminal, map that to backup */
     if (active_term()->child_procs[term_procs-1]->vidmem_virt_addr != 0)
@@ -194,9 +200,16 @@ switch_active_terminal(uint32_t term_num)
     term_procs = active_term()->num_procs;
 
     /* load the new terminal's backed up screen */
-    clear();
+    // clear();
     /* REVIEW: change memcpy dest depending on which process is active */
     memcpy((void *)VIDEO_MEM_START, active_term()->virt_vidmem_backup, _4KB);
+
+    /* map backup location of new terminal to 0xB8 */
+    map_backup_vidmem(
+        (uint32_t)(active_term()->virt_vidmem_backup),
+        VIDEO_MEM_START
+    );
+    update_cursor(active_term()->x_pos, active_term()->y_pos);
     
     /* execute new shell if no process exists in this terminal */
     if (active_term()->num_procs == 0)
@@ -207,9 +220,10 @@ switch_active_terminal(uint32_t term_num)
         asm volatile (
             "movl %%esp, %0     \n\t"
             "movl %%ebp, %1     \n\t"
-            : "=r" (get_pcb()->k_esp), 
-              "=r" (get_pcb()->k_ebp)
+            : "=r" (executing_term()->child_procs[executing_term()->num_procs-1]->k_esp),
+              "=r" (executing_term()->child_procs[executing_term()->num_procs-1]->k_ebp)
         );
+        set_exec_term_num(active_term_num());
         execute((uint8_t *)"shell");
         return;
     }
@@ -231,7 +245,7 @@ switch_active_terminal(uint32_t term_num)
         }
     }
 
-    enable_irq(PIT_IRQ);
+    sti();
 }
 
 
@@ -246,7 +260,7 @@ switch_active_terminal(uint32_t term_num)
 int32_t
 terminal_open(const uint8_t* filename)
 {
-    clear_setpos(0, 0);
+    // clear_setpos(0, 0);
     return 0;
 }
 
@@ -313,7 +327,7 @@ terminal_write(int32_t fd, const void* buf, int32_t nbytes)
     int i;
     for(i = 0; i < nbytes; i++)
     {
-        putc(*(uint8_t*)buf);
+        putc_buffer(*(uint8_t*)buf);
         buf++;
     }
 

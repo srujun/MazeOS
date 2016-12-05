@@ -53,18 +53,18 @@ halt(uint8_t status)
     if (0 != free_pid(pcb->pid))
         printf("Should not have printed!\n");
 
-    uint32_t k_esp, esp0;
+    uint32_t k_esp, k_ebp, esp0;
 
     /* unmap video memory if previously mapped */
     if (pcb->vidmem_virt_addr != 0)
         free_user_video_mem(pcb->vidmem_virt_addr);
 
-    active_term()->num_procs--;
-    active_term()->child_procs[active_term()->num_procs] = NULL;
+    executing_term()->num_procs--;
+    executing_term()->child_procs[executing_term()->num_procs] = NULL;
 
     if (pcb->parent == NULL) // Main process
     {
-        esp0 = k_esp = _8MB - _4B - (pcb->pid - 1) * _8KB;
+        esp0 = k_esp = k_ebp = _8MB - _4B - (pcb->pid - 1) * _8KB;
         clear_setpos(0, 0);
 
         /* restart shell */
@@ -73,6 +73,7 @@ halt(uint8_t status)
     else // halting a child process
     {
         k_esp = pcb->parent->k_esp;
+        k_ebp = pcb->parent->k_ebp;
         esp0 = pcb->parent->esp0;
 
         /* restore paging by mapping parent's page in the page directory */
@@ -86,10 +87,11 @@ halt(uint8_t status)
     asm volatile (
         "movl %0, %%eax      \n\t"
         "movl %1, %%esp      \n\t"
+        "movl %2, %%ebp      \n\t"
         "jmp BIG_FAT_RETURN"
         :
-        : "r" (retval), "r" (k_esp)
-        : "%eax", "%esp"
+        : "r" (retval), "r" (k_esp), "r" (k_ebp)
+        : "%eax", "%esp", "%ebp"
     );
 
     /* should never happen */
@@ -216,10 +218,10 @@ execute(const uint8_t * command)
     pcb.ebp = pcb.esp = _128MB + _4MB - _4B;
 
     /* initialize the kernel stack pointer */
-    pcb.k_ebp = pcb.k_esp = _8MB - _4B - (pcb.pid - 1) * _8KB;
+    pcb.k_ebp = pcb.k_esp = pcb.esp0 = _8MB - _4B - (pcb.pid - 1) * _8KB;
 
     /* load the parent pcb pointer */
-    if (active_term()->num_procs == 0) // we are the first process in curr terminal
+    if (executing_term()->num_procs == 0) // we are the first process in curr terminal
         pcb.parent = NULL;
     else
     {
@@ -265,21 +267,21 @@ execute(const uint8_t * command)
 
     /* if we're trying to create a new process on a terminal that
        context switch thinks is not active, we set it to active */
-    if (active_term()->num_procs == 0)
-    {
-        set_exec_term_num(active_term_num());
-        map_actual_vidmem(VIDEO_MEM_START);
-    }
+    // if (active_term()->num_procs == 0)
+    // {
+    //     set_exec_term_num(active_term_num());
+        // map_actual_vidmem(VIDEO_MEM_START);
+    // }
 
     /* copy the new pcb to the new kernel stack */
     memcpy((void*)(pcb.k_esp & ESP_PCB_MASK), &pcb, sizeof(pcb_t));
     /* put the PCB pointer in the terminal_t struct */
-    active_term()->child_procs[active_term()->num_procs] =
+    executing_term()->child_procs[executing_term()->num_procs] =
                         (void*)(pcb.k_esp & ESP_PCB_MASK);
-    active_term()->num_procs++;
+    executing_term()->num_procs++;
 
     /* context switch -> write TSS values */
-    tss.esp0 = pcb.k_esp;
+    tss.esp0 = pcb.esp0;
     tss.ss0 = KERNEL_DS;
     // tss.ss0 does not need to be updated (remains KERNEL_DS)
 

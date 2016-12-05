@@ -193,14 +193,16 @@ context_switch(uint32_t next_term)
     /* change userspace 128MB page's mapping to next proccess */
     map_page_4MB(new_pcb->pde_virt_addr, new_pcb->pde);
 
+    // update_cursor(exec_term()->x_pos, exec_term()->y_pos);
+
     /* map 0xB8000 to physical 0xB8000 or to the backup buffer
        of the new process */
-    if (get_term(next_term) == active_term())
+    // if (get_term(next_term) == active_term())
         /* we are switching to an active terminal's process */
-        map_actual_vidmem(VIDEO_MEM_START);
-    else
+        // map_actual_vidmem(VIDEO_MEM_START);
+    // else
         /* new terminal is inactive */
-        map_actual_vidmem(get_term(next_term)->phys_vidmem_backup);
+        // map_actual_vidmem(get_term(next_term)->phys_vidmem_backup);
 
     exec_term = next_term;
 
@@ -208,7 +210,7 @@ context_switch(uint32_t next_term)
     // set_screen_y(get_term(next_term)->y_pos);
 
     /* update TSS ESP0 */
-    tss.esp0 = new_pcb->k_esp;
+    tss.esp0 = new_pcb->esp0;
 
     /* save old process' ESP and EBP */
     asm volatile (

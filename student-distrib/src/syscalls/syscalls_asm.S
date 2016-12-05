@@ -29,8 +29,8 @@ store_esp0:
 .global syscall_handler
 syscall_handler:
     # save the esp0 value in this process' PCB if execute has been called
-    cmpl $2, %eax
-    je   store_esp0
+    # cmpl $2, %eax
+    # je   store_esp0
 syscall_handler_continue:
     # save all registers and EFLAGS
     pushl    %es

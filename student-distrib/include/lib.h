@@ -18,8 +18,9 @@
 
 int32_t printf(int8_t *format, ...);
 void putc(uint8_t c);
+void putc_buffer(uint8_t c);
 int32_t puts(int8_t *s);
-void shift_display();
+void shift_display(char* write_mem);
 void update_cursor(int col, int row);
 void do_backspace();
 int8_t *itoa(uint32_t value, int8_t* buf, int32_t radix);

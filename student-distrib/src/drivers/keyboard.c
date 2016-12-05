@@ -227,25 +227,25 @@ int
 keyboard_read(int32_t fd, void* buf, int32_t nbytes)
 {
     /* allow buffer filling */
-    active_term()->read_ack = 1;
+    executing_term()->read_ack = 1;
     /* resetting flag at every read */
-    active_term()->ack = 0;
+    executing_term()->ack = 0;
     /* spin until user presses Enter or the buffer has been filled */
-    while(!active_term()->ack);
+    while(!executing_term()->ack);
 
-    active_term()->ack = 0;
-    active_term()->read_ack = 0;
+    executing_term()->ack = 0;
+    executing_term()->read_ack = 0;
     disable_irq(KEYBOARD_IRQ);
     uint32_t size;
 
-    if(active_term()->buffer_size < nbytes)
-        size = active_term()->buffer_size;
+    if(executing_term()->buffer_size < nbytes)
+        size = executing_term()->buffer_size;
     else
         size = nbytes;
 
-    memcpy(buf, active_term()->buffer, size);
-    memset(active_term()->buffer, '\0', MAX_BUFFER_SIZE);
-    active_term()->buffer_size = 0;
+    memcpy(buf, executing_term()->buffer, size);
+    memset(executing_term()->buffer, '\0', MAX_BUFFER_SIZE);
+    executing_term()->buffer_size = 0;
     enable_irq(KEYBOARD_IRQ);
 
     return size;
