@@ -51,7 +51,7 @@ halt(uint8_t status)
             pcb->fds[i].file_ops->close(i);
     }
 
-    /* free the PCB (should never fail) */
+    /* free the PID (should never fail) */
     if (0 != free_pid(pcb->pid))
         printf("Should not have printed!\n");
 

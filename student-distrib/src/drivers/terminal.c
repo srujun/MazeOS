@@ -170,6 +170,8 @@ switch_active_terminal(uint32_t term_num)
     if (pid < 1 && get_term(term_num)->num_procs == 0)
     {
         /* no more space available! */
+        printf("\nTerminal not available - max processes reached!\n");
+        active_term()->ack = 1;
         sti();
         return;
     }
