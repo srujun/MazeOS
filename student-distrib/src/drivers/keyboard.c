@@ -192,7 +192,7 @@ keyboard_interrupt_handler()
         print_character(c);
 
         /* check for buffer filled */
-        if(active_term()->buffer_size == MAX_BUFFER_SIZE - 2)
+        if(active_term()->buffer_size >= MAX_BUFFER_SIZE - 2)
         {
             active_term()->buffer[active_term()->buffer_size] = '\n';
             active_term()->buffer_size++;
