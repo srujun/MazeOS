@@ -275,8 +275,8 @@ putc_buffer(uint8_t c)
             executing_term()->x_pos = 0;
         }
     }
-
-    update_cursor(executing_term()->x_pos, executing_term()->y_pos);
+    if(executing_term() == active_term())
+    	update_cursor(executing_term()->x_pos, executing_term()->y_pos);
 }
 
 
