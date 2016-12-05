@@ -13,6 +13,8 @@
 #define RETURN_EXCEPTION       256
 
 /* PIT Constants */
+#define PIT_IRQ                0
+
 #define PIT_CHANNEL0_REG       0x40
 #define PIT_CMD_REG            0x43
 

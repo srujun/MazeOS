@@ -34,9 +34,6 @@
 
 #define PIC_MAX_PINS    8
 
-/* PIT */
-#define PIT_IRQ         0
-
 /* Externally-visible functions */
 
 /* Initialize both PICs */

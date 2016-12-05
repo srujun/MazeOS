@@ -111,7 +111,6 @@ pit_init(void)
 void
 pit_interrupt_handler(void)
 {
-    // printf("PIT!\n");
     send_eoi(PIT_IRQ);
 
     cli();
@@ -182,32 +181,15 @@ context_switch(uint32_t next_term)
     pcb_t * new_pcb;
     uint32_t num_procs;
 
+    /* get the PCB's */
     num_procs = get_term(next_term)->num_procs;
     old_pcb = get_pcb();
     new_pcb = get_term(next_term)->child_procs[num_procs - 1];
 
-    /* save current process' state */
-    // get_term(exec_term)->x_pos = get_screen_x();
-    // get_term(exec_term)->y_pos = get_screen_y();
-
     /* change userspace 128MB page's mapping to next proccess */
     map_page_4MB(new_pcb->pde_virt_addr, new_pcb->pde);
 
-    // update_cursor(exec_term()->x_pos, exec_term()->y_pos);
-
-    /* map 0xB8000 to physical 0xB8000 or to the backup buffer
-       of the new process */
-    // if (get_term(next_term) == active_term())
-        /* we are switching to an active terminal's process */
-        // map_actual_vidmem(VIDEO_MEM_START);
-    // else
-        /* new terminal is inactive */
-        // map_actual_vidmem(get_term(next_term)->phys_vidmem_backup);
-
     exec_term = next_term;
-
-    // set_screen_x(get_term(next_term)->x_pos);
-    // set_screen_y(get_term(next_term)->y_pos);
 
     /* update TSS ESP0 */
     tss.esp0 = new_pcb->esp0;

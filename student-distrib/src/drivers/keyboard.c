@@ -408,7 +408,9 @@ check_function_keys(uint8_t scan1)
         {
             send_eoi(KEYBOARD_IRQ);
             enable_irq(KEYBOARD_IRQ);
+            /* switch the terminal */
             switch_active_terminal(scan1 - FUNCTION_1);
+
             return 1;
         }
     }

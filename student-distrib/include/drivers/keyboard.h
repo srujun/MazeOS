@@ -63,8 +63,6 @@ void keyboard_init();
 /* Handles the keyboard interrupts */
 extern void keyboard_interrupt_handler();
 
-void get_kb_buffer(void* buf);
-
 int keyboard_read(int32_t fd, void* buf, int32_t nbytes);
 
 int keyboard_write(int32_t fd, const void* buf, int32_t nbytes);

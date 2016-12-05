@@ -16,8 +16,6 @@
 #define CURSOR_OFFSET   8
 
 
-// static volatile int screen_x;
-// static volatile int screen_y;
 static char* video_mem = (char *)VIDEO;
 
 /*
@@ -223,9 +221,10 @@ putc(uint8_t c)
     }
     else
     {
-        *(uint8_t *)(video_mem + ((NUM_COLS*active_term()->y_pos + active_term()->x_pos) << 1)) = c;
-        *(uint8_t *)(video_mem + ((NUM_COLS*active_term()->y_pos + active_term()->x_pos) << 1) + 1) =
-                    active_term()->attrib;
+        *(uint8_t *)(video_mem + ((NUM_COLS*active_term()->y_pos +
+                    active_term()->x_pos) << 1)) = c;
+        *(uint8_t *)(video_mem + ((NUM_COLS*active_term()->y_pos +
+                    active_term()->x_pos) << 1) + 1) = active_term()->attrib;
         active_term()->x_pos++;
         if(active_term()->x_pos >= NUM_COLS)
         {
@@ -236,6 +235,7 @@ putc(uint8_t c)
             active_term()->x_pos = 0;
         }
     }
+
     update_cursor(active_term()->x_pos, active_term()->y_pos);
 }
 
@@ -259,9 +259,12 @@ putc_buffer(uint8_t c)
     }
     else
     {
-        *(uint8_t *)(executing_term()->virt_vidmem_backup + ((NUM_COLS*executing_term()->y_pos + executing_term()->x_pos) << 1)) = c;
-        *(uint8_t *)(executing_term()->virt_vidmem_backup + ((NUM_COLS*executing_term()->y_pos + executing_term()->x_pos) << 1) + 1) =
-                    executing_term()->attrib;
+        *(uint8_t *)(executing_term()->virt_vidmem_backup +
+                ((NUM_COLS*executing_term()->y_pos +
+                    executing_term()->x_pos) << 1)) = c;
+        *(uint8_t *)(executing_term()->virt_vidmem_backup +
+                ((NUM_COLS*executing_term()->y_pos +
+                    executing_term()->x_pos) << 1) + 1) = executing_term()->attrib;
         executing_term()->x_pos++;
         if(executing_term()->x_pos >= NUM_COLS)
         {
@@ -272,6 +275,7 @@ putc_buffer(uint8_t c)
             executing_term()->x_pos = 0;
         }
     }
+
     update_cursor(executing_term()->x_pos, executing_term()->y_pos);
 }
 

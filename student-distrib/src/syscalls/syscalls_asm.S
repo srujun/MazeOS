@@ -10,28 +10,8 @@ syscall_jmp_table:
     .long 0x0, halt, execute, read, write, open, close, getargs, vidmap, \
     set_handler, sigreturn
 
-
-store_esp0:
-    pushl    %ebx
-    pushl    %ecx
-    movl     %esp, %ebx
-    # mask the upper bits to get address of start of process kernel stack
-    # 0xFFFFE000 = 8KB mask
-    andl     $0xFFFFE000, %ebx
-    movl     %esp, %ecx
-    addl     $8, %ecx
-    movl     %ecx, (%ebx)
-    popl     %ecx
-    popl     %ebx
-    jmp      syscall_handler_continue
-
-
 .global syscall_handler
 syscall_handler:
-    # save the esp0 value in this process' PCB if execute has been called
-    # cmpl $2, %eax
-    # je   store_esp0
-syscall_handler_continue:
     # save all registers and EFLAGS
     pushl    %es
     pushl    %ds
@@ -46,10 +26,6 @@ syscall_handler_continue:
     # 0x18 = KERNEL_DS
     movw     $0x18, %di
     movw     %di, %ds
-
-    # pushl    %ebp
-    # pushl    %edi
-    # pushl    %esi
 
     # store arguments to the stack
     pushl    %edx

@@ -33,6 +33,7 @@ halt(uint8_t status)
 {
     int i;
     int32_t retval;
+    uint32_t k_esp, k_ebp, esp0;
 
     cli();
 
@@ -50,19 +51,19 @@ halt(uint8_t status)
             pcb->fds[i].file_ops->close(i);
     }
 
+    /* free the PCB (should never fail) */
     if (0 != free_pid(pcb->pid))
         printf("Should not have printed!\n");
-
-    uint32_t k_esp, k_ebp, esp0;
 
     /* unmap video memory if previously mapped */
     if (pcb->vidmem_virt_addr != 0)
         free_user_video_mem(pcb->vidmem_virt_addr);
 
+    /* update this process' terminal */
     executing_term()->num_procs--;
     executing_term()->child_procs[executing_term()->num_procs] = NULL;
 
-    if (pcb->parent == NULL) // Main process
+    if (pcb->parent == NULL) // First process on current terminal
     {
         esp0 = k_esp = k_ebp = _8MB - _4B - (pcb->pid - 1) * _8KB;
         clear_setpos(0, 0);
@@ -72,6 +73,7 @@ halt(uint8_t status)
     }
     else // halting a child process
     {
+        /* get the parent's kstack values */
         k_esp = pcb->parent->k_esp;
         k_ebp = pcb->parent->k_ebp;
         esp0 = pcb->parent->esp0;
@@ -221,13 +223,13 @@ execute(const uint8_t * command)
     pcb.k_ebp = pcb.k_esp = pcb.esp0 = _8MB - _4B - (pcb.pid - 1) * _8KB;
 
     /* load the parent pcb pointer */
-    if (executing_term()->num_procs == 0) // we are the first process in curr terminal
+    if (executing_term()->num_procs == 0)
+        // we are the first process in curr terminal
         pcb.parent = NULL;
     else
     {
         pcb.parent = get_pcb();
-        /* IMPORTANT: store current esp value in pcb of parent */
-        /* REVIEW */
+        /* IMPORTANT: store current esp/ebp value in pcb of parent */
         pcb.parent->k_esp = ret_kesp;
         pcb.parent->k_ebp = ret_kebp;
     }
@@ -264,14 +266,6 @@ execute(const uint8_t * command)
         pcb.fds[i].pos = 0;
         pcb.fds[i].flags = 0;
     }
-
-    /* if we're trying to create a new process on a terminal that
-       context switch thinks is not active, we set it to active */
-    // if (active_term()->num_procs == 0)
-    // {
-    //     set_exec_term_num(active_term_num());
-        // map_actual_vidmem(VIDEO_MEM_START);
-    // }
 
     /* copy the new pcb to the new kernel stack */
     memcpy((void*)(pcb.k_esp & ESP_PCB_MASK), &pcb, sizeof(pcb_t));
