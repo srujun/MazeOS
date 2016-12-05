@@ -80,11 +80,11 @@ free_pid(uint32_t pid)
 
 /*
  * pit_init
- *   DESCRIPTION: TODO
+ *   DESCRIPTION: Initializes the PIT to send interrupts every 25 milliseconds
  *   INPUTS: none
  *   OUTPUTS: none
  *   RETURN VALUE: none
- *   SIDE EFFECTS: none
+ *   SIDE EFFECTS: PIT IRQs are now enabled
  */
 void
 pit_init(void)
@@ -102,11 +102,12 @@ pit_init(void)
 
 /*
  * pit_interrupt_handler
- *   DESCRIPTION: TODO
+ *   DESCRIPTION: Handles the PIT interrupt - attempts to do a context switch
+ *                to another process if there is one.
  *   INPUTS: none
  *   OUTPUTS: none
  *   RETURN VALUE: none
- *   SIDE EFFECTS: none
+ *   SIDE EFFECTS: The executing process changes
  */
 void
 pit_interrupt_handler(void)
@@ -138,10 +139,10 @@ pit_interrupt_handler(void)
 
 /*
  * get_exec_term_num
- *   DESCRIPTION: TODO
+ *   DESCRIPTION: Returns the number of the executing terminal
  *   INPUTS: none
  *   OUTPUTS: none
- *   RETURN VALUE: none
+ *   RETURN VALUE: uint32_t - the terminal number
  *   SIDE EFFECTS: none
  */
 uint32_t
@@ -153,8 +154,8 @@ get_exec_term_num()
 
 /*
  * set_exec_term_num
- *   DESCRIPTION: TODO
- *   INPUTS: none
+ *   DESCRIPTION: Changes the number of the executing terminal
+ *   INPUTS: num - the number to set to
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: none
@@ -168,11 +169,12 @@ set_exec_term_num(uint32_t num)
 
 /*
  * context_switch
- *   DESCRIPTION: TODO
- *   INPUTS: none
+ *   DESCRIPTION: Causes the processor to start executing the active process of
+ *                the given terminal
+ *   INPUTS: next_term - the terminal who's process to execute
  *   OUTPUTS: none
  *   RETURN VALUE: none
- *   SIDE EFFECTS: none
+ *   SIDE EFFECTS: Stack pointers are now changed
  */
 void
 context_switch(uint32_t next_term)

@@ -20,12 +20,13 @@ static const uint8_t attribs[MAX_TERMINALS] = {0x9F, 0x5F, 0x4F};
 
 
 /*
- * terminal_init TODO
- *   DESCRIPTION: none
+ * terminal_init
+ *   DESCRIPTION: Initializes all 3 terminals and the structs. Created backup
+ *                memory mappings for each terminal. Then switches to terminal 0.
  *   INPUTS: none
  *   OUTPUTS: none
  *   RETURN VALUE: none
- *   SIDE EFFECTS: none
+ *   SIDE EFFECTS: Terminals are initialized
  */
 void
 terminal_init()
@@ -70,11 +71,11 @@ terminal_init()
 
 
 /*
- * active_term TODO
- *   DESCRIPTION: none
+ * active_term
+ *   DESCRIPTION: Returns a pointer to the visible terminal's struct
  *   INPUTS: none
  *   OUTPUTS: none
- *   RETURN VALUE: none
+ *   RETURN VALUE: Terminal struct pointer
  *   SIDE EFFECTS: none
  */
 terminal_t *
@@ -85,11 +86,11 @@ active_term()
 
 
 /*
- * active_term_num TODO
- *   DESCRIPTION: none
+ * active_term_num
+ *   DESCRIPTION: Returns the visible terminal's number
  *   INPUTS: none
  *   OUTPUTS: none
- *   RETURN VALUE: none
+ *   RETURN VALUE: uint32_t terminal number (0-2)
  *   SIDE EFFECTS: none
  */
 uint32_t
@@ -100,11 +101,11 @@ active_term_num()
 
 
 /*
- * executing_term TODO
- *   DESCRIPTION: none
+ * executing_term
+ *   DESCRIPTION: Returns a pointer to the executing terminal's struct
  *   INPUTS: none
  *   OUTPUTS: none
- *   RETURN VALUE: none
+ *   RETURN VALUE: Terminal struct pointer
  *   SIDE EFFECTS: none
  */
 terminal_t *
@@ -115,11 +116,11 @@ executing_term()
 
 
 /*
- * active_term TODO
- *   DESCRIPTION: none
- *   INPUTS: none
+ * active_term
+ *   DESCRIPTION: Returns a pointer to the requested terminal's struct
+ *   INPUTS: term_num - the terminal number
  *   OUTPUTS: none
- *   RETURN VALUE: none
+ *   RETURN VALUE: Terminal struct pointer
  *   SIDE EFFECTS: none
  */
 terminal_t *
@@ -137,12 +138,15 @@ get_term(uint32_t term_num)
 
 
 /*
- * switch_active_terminal TODO
- *   DESCRIPTION: none
- *   INPUTS: none
+ * switch_active_terminal
+ *   DESCRIPTION: Causes a switch to the requested terminal. It maps the new
+ *                terminal's video memory backup and updates the screen with
+ *                new data. If there is no process on the new terminal, it
+ *                attempts to create a new one (if there is space.)
+ *   INPUTS: termn_num - the terminal to switch to
  *   OUTPUTS: none
  *   RETURN VALUE: none
- *   SIDE EFFECTS: none
+ *   SIDE EFFECTS: Switches the visible terminal
  */
 void
 switch_active_terminal(uint32_t term_num)

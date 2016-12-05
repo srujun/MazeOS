@@ -392,11 +392,12 @@ check_modifier_keys(uint8_t scan1, uint8_t scan2)
 
 
 /*
- * check_function_keys TODO
- *   DESCRIPTION: none
- *   INPUTS: none
+ * check_function_keys
+ *   DESCRIPTION: Checks if an ALT-FX comnination is being pressed, and causes
+ *                a terminal switch if it is valid
+ *   INPUTS: scan1 - the keyboard scan value
  *   OUTPUTS: none
- *   RETURN VALUE: none
+ *   RETURN VALUE: int32_t - 1 if successful, 0 if not detected
  *   SIDE EFFECTS: none
  */
 int32_t

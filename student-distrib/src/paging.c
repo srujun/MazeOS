@@ -137,9 +137,9 @@ map_page_4MB(uint32_t vir_addr, pde_4M_t pde)
 
 
 /*
- * map_actual_vidmem TODO
- *   DESCRIPTION: Changes 0xB8000 to the given physical address
- *   INPUTS: none
+ * map_actual_vidmem
+ *   DESCRIPTION: Changes virtual 0xB8000 to the given physical address
+ *   INPUTS: phys_addr - the physical address to use in the page mapping
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: Flushes the x86 TLBs
@@ -216,9 +216,10 @@ free_user_video_mem(uint32_t vir_addr)
 
 
 /*
- * map_backup_vidmem TODO
- *   DESCRIPTION: none
- *   INPUTS: none
+ * map_backup_vidmem
+ *   DESCRIPTION: Maps the given virtual address of the backup terminal video
+ *                memory to the given physical address
+ *   INPUTS: vir_addr, phys_addr - the addresses
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: Flushes the x86 TLBs
