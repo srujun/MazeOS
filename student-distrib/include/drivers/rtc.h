@@ -15,9 +15,6 @@
 /* To read or write from/to byte of CMOS configuration space */
 #define RTC_PORT2          0x71
 
-#define RTC_FD_FREQ_MASK   0xFFE00000
-#define RTC_FD_FREQ_SHIFT  21
-
 /* CMOS RAM Offsets */
 #define STATUS_REG_A       0x8A
 #define STATUS_REG_B       0x8B
@@ -30,7 +27,7 @@
 
 /* Values for the divider setting to set the frequency on the RTC */
 #define DIVIDER_SETTING_CEIL 16
-#define DIVIDER_SETTING 	 6
+#define DIVIDER_SETTING 	 15
 
 #define RTC_MAX_FREQ        1024
 #define RTC_MIN_FREQ        2
