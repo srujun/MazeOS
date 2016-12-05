@@ -8,6 +8,7 @@
 #include "x86/i8259.h"
 #include "lib.h"
 #include "types.h"
+#include "process.h"
 
 static volatile int rtc_interrupt_occurred = 0;
 
@@ -88,10 +89,16 @@ rtc_interrupt_handler(void)
 int32_t
 rtc_read(int32_t fd, void* buf, int32_t nbytes)
 {
+    uint32_t ticks = 0;
     rtc_interrupt_occurred = 0;
 
     /* spin while interrupt has not occurred */
-    while(!rtc_interrupt_occurred);
+    while(ticks < get_pcb()->fds[fd].pos)
+    {
+        while(!rtc_interrupt_occurred);
+        rtc_interrupt_occurred = 0;
+        ticks++;
+    }
 
     rtc_interrupt_occurred = 0;
     return 0;
@@ -113,40 +120,21 @@ rtc_read(int32_t fd, void* buf, int32_t nbytes)
 int32_t
 rtc_write(int32_t fd, const void* buf, int32_t nbytes)
 {
-    uint8_t set_divider, count;
+    uint8_t count;
     uint32_t freq;
-    char prev_saved;
 
     if(nbytes != sizeof(uint32_t))
         return -1;
 
     memcpy(&freq, buf, sizeof(uint32_t));
 
-    /* set register STATUS_REG_A */
-    outb(STATUS_REG_A, RTC_PORT1);
-    prev_saved = inb(RTC_PORT2);
-
     /* if frequency is out of range, return failed */
     if(freq < RTC_MIN_FREQ || freq > RTC_MAX_FREQ)
         return -1;
 
-    count = 0;
+    count = RTC_MAX_FREQ / freq;
 
-    /* compute the frequency from the given input */
-    while(freq != 1)
-    {
-        if(freq % 2 != 0)
-            return -1;
-
-        freq = freq / 2;
-        count++;
-    }
-
-    set_divider = DIVIDER_SETTING_CEIL - count;
-
-    outb(STATUS_REG_A, RTC_PORT1);
-    /* write rate to STATUS_REG_A */
-    outb((prev_saved & MASK_LOWER) | set_divider, RTC_PORT2);
+    get_pcb()->fds[fd].pos = count;
 
     return sizeof(uint32_t);
 }
@@ -163,7 +151,7 @@ rtc_write(int32_t fd, const void* buf, int32_t nbytes)
 int32_t
 rtc_open(const uint8_t* filename)
 {
-    rtc_init();
+    // rtc_init();
     return 0;
 }
 
@@ -179,7 +167,7 @@ rtc_open(const uint8_t* filename)
 int32_t
 rtc_close(int32_t fd)
 {
-    disable_irq(RTC_IRQ);
-    rtc_init();
+    // disable_irq(RTC_IRQ);
+    // rtc_init();
     return 0;
 }
