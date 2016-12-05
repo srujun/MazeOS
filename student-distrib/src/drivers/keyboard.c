@@ -497,16 +497,12 @@ print_character(uint8_t scan1)
 
     if(scan1 == SCAN_TAB)
     {
-        int i;
-        for (i = 0; i < 4; i++)
+        if (active_term()->read_ack)
         {
-            if (active_term()->read_ack)
-            {
-                active_term()->buffer[active_term()->buffer_size] = ' ';
-                active_term()->buffer_size++;
-            }
-            putc(' ');
+            active_term()->buffer[active_term()->buffer_size] = ' ';
+            active_term()->buffer_size++;
         }
+        putc(' ');
     }
     else if(output == 0 || scan1 == CURSOR_UP || scan1 == CURSOR_RIGHT ||
             scan1 == CURSOR_LEFT || scan1 == CURSOR_DOWN);
