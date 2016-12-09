@@ -25,6 +25,8 @@ rtc_init(void)
 {
     char prev_saved;
 
+    rtc_interrupt_occurred = 0;
+
     /* Select register B */
     outb(STATUS_REG_B, RTC_PORT1);
 

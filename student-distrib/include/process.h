@@ -10,14 +10,18 @@
 #define ESP_PCB_MASK           0xFFFFE000
 #define MAX_PROCESSES          2
 #define ARGS_LENGTH            128
+#define RETURN_EXCEPTION       256
 
 typedef struct pcb pcb_t;
 struct pcb {
     uint32_t esp0;
     uint16_t pid;
 
+    int32_t retval;
+
     pde_4M_t pde;
     uint32_t pde_virt_addr;
+    uint32_t vidmem_virt_addr;
 
     uint32_t esp;
     uint32_t ebp;
