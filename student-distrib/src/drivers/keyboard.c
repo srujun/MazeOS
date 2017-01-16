@@ -4,24 +4,20 @@
  * the keyboard interrupts
  */
 
+#include "drivers/keyboard.h"
 #include "drivers/rtc.h"
+#include "drivers/terminal.h"
 #include "x86/i8259.h"
 #include "lib.h"
-#include "drivers/keyboard.h"
-#include "types.h"
 
 /* flags keeps tracks of all the special keys */
-static int buffer_size = 0;
-static uint8_t buffer[MAX_BUFFER_SIZE];
-
 static uint8_t l_shift;
 static uint8_t r_shift;
 static uint8_t caps;
 static uint8_t l_ctrl;
 static uint8_t r_ctrl;
-
-volatile uint8_t ack;
-volatile uint8_t read_ack;
+static uint8_t l_alt;
+static uint8_t r_alt;
 
 /* Create an array to store the ASCII values of the inputs to be printed */
 const static unsigned char scan_code_1[2][SUPPORTED_KEYS] = {
@@ -92,16 +88,18 @@ void
 keyboard_init()
 {
     /* clear the buffer */
-    memset(buffer, '\0', MAX_BUFFER_SIZE);
+    memset(active_term()->buffer, '\0', MAX_BUFFER_SIZE);
 
-    buffer_size = 0;
-    ack = 0;
-    read_ack = 0;
+    active_term()->buffer_size = 0;
+    active_term()->ack = 0;
+    active_term()->read_ack = 0;
     l_shift = 0;
     r_shift = 0;
     caps = 0;
     l_ctrl = 0;
     r_ctrl = 0;
+    l_alt = 0;
+    r_alt = 0;
 
     enable_irq(KEYBOARD_IRQ);
 }
@@ -125,7 +123,7 @@ keyboard_interrupt_handler()
     uint8_t c = inb(KEYBOARD_PORT);
     uint8_t c2 = inb(KEYBOARD_PORT);
 
-    /* check modifier keys like SHIFT, CTRL, and CAPS LOCK */
+    /* check modifier keys like SHIFT, CTRL, ALT, and CAPS LOCK */
     if (check_modifier_keys(c, c2))
     {
         send_eoi(KEYBOARD_IRQ);
@@ -133,9 +131,16 @@ keyboard_interrupt_handler()
         return;
     }
 
-    if (read_ack)
+    if (check_function_keys(c))
     {
-        /* check if user has pressed any control code combinations */
+        send_eoi(KEYBOARD_IRQ);
+        enable_irq(KEYBOARD_IRQ);
+        return;
+    }
+
+    /* check if user has pressed any control code combinations */
+    if (active_term()->read_ack)
+    {
         if (check_control_codes(c))
         {
             send_eoi(KEYBOARD_IRQ);
@@ -150,17 +155,17 @@ keyboard_interrupt_handler()
         /* handle backspace input */
         if(c == BACKSPACE)
         {
-            if (buffer_size == 0)
+            if (active_term()->buffer_size == 0)
             {
                 /* don't do backspace if buffer is empty */
                 send_eoi(KEYBOARD_IRQ);
                 enable_irq(KEYBOARD_IRQ);
                 return;
             }
-            if (read_ack)
+            if (active_term()->read_ack)
             {
-                buffer_size--;
-                buffer[buffer_size] = '\0';
+                active_term()->buffer_size--;
+                active_term()->buffer[active_term()->buffer_size] = '\0';
                 do_backspace();
             }
             send_eoi(KEYBOARD_IRQ);
@@ -171,12 +176,12 @@ keyboard_interrupt_handler()
         /* handle enter key */
         if(c == ENTER_KEYCODE)
         {
-            if (read_ack)
+            if (active_term()->read_ack)
             {
-                buffer[buffer_size] = '\n';
-                buffer_size++;
+                active_term()->buffer[active_term()->buffer_size] = '\n';
+                active_term()->buffer_size++;
             }
-            ack = 1;
+            active_term()->ack = 1;
             putc('\n');
             send_eoi(KEYBOARD_IRQ);
             enable_irq(KEYBOARD_IRQ);
@@ -187,11 +192,11 @@ keyboard_interrupt_handler()
         print_character(c);
 
         /* check for buffer filled */
-        if(buffer_size == MAX_BUFFER_SIZE - 1)
+        if(active_term()->buffer_size >= MAX_BUFFER_SIZE - 2)
         {
-            buffer[buffer_size] = '\n';
-            buffer_size++;
-            ack = 1;
+            active_term()->buffer[active_term()->buffer_size] = '\n';
+            active_term()->buffer_size++;
+            active_term()->ack = 1;
             putc('\n');
             send_eoi(KEYBOARD_IRQ);
             enable_irq(KEYBOARD_IRQ);
@@ -222,58 +227,28 @@ int
 keyboard_read(int32_t fd, void* buf, int32_t nbytes)
 {
     /* allow buffer filling */
-    read_ack = 1;
+    executing_term()->read_ack = 1;
     /* resetting flag at every read */
-    ack = 0;
+    executing_term()->ack = 0;
     /* spin until user presses Enter or the buffer has been filled */
-    while(!ack);
+    while(!executing_term()->ack);
 
-    ack = 0;
-    read_ack = 0;
+    executing_term()->ack = 0;
+    executing_term()->read_ack = 0;
     disable_irq(KEYBOARD_IRQ);
     uint32_t size;
 
-    if(buffer_size < nbytes)
-        size = buffer_size;
+    if(executing_term()->buffer_size < nbytes)
+        size = executing_term()->buffer_size;
     else
         size = nbytes;
 
-    memcpy(buf, buffer, size);
-    memset(buffer, '\0', MAX_BUFFER_SIZE);
-    buffer_size = 0;
+    memcpy(buf, executing_term()->buffer, size);
+    memset(executing_term()->buffer, '\0', MAX_BUFFER_SIZE);
+    executing_term()->buffer_size = 0;
     enable_irq(KEYBOARD_IRQ);
 
     return size;
-}
-
-
-/*
- * get_kb_buffer
- *   DESCRIPTION: This function copies the current buffer into the given pointer
- *                Acknowledges if control codes are present
- *   INPUTS: fd - File Descriptor (unused)
- *           buf - The buffer to write data to
- *           nbytes - The number of bytes to be copied
- *   OUTPUTS: none
- *   RETURN VALUE: none
- *   SIDE EFFECTS: none
- */
-void
-get_kb_buffer(void* buf)
-{
-    disable_irq(KEYBOARD_IRQ);
-
-    memcpy(buf, buffer, MAX_BUFFER_SIZE);
-    /* if control codes are present, we need to acknowledge it for handling
-       them within the shell program */
-    if (buffer[0] == CTRL_A || buffer[0] == CTRL_C || buffer[0] == CTRL_L)
-    {
-        memset(buffer, '\0', MAX_BUFFER_SIZE);
-        buffer_size = 0;
-        ack = 0;
-    }
-
-    enable_irq(KEYBOARD_IRQ);
 }
 
 
@@ -361,6 +336,28 @@ check_modifier_keys(uint8_t scan1, uint8_t scan2)
         return 1;
     }
 
+    if (scan1 == ALT_PRESSED)
+    {
+        l_alt = 1;
+        return 1;
+    }
+    else if (scan1 == ALT_RELEASED)
+    {
+        l_alt = 0;
+        return 1;
+    }
+
+    if (scan1 == ALT_PRESSED && scan2 == EXTENSION)
+    {
+        r_alt = 1;
+        return 1;
+    }
+    else if (scan1 == ALT_RELEASED && scan2 == EXTENSION)
+    {
+        r_alt = 0;
+        return 1;
+    }
+
     /* Check the status of Shift Keys */
     if (scan1 == L_SHIFT_PRESSED)
     {
@@ -395,6 +392,36 @@ check_modifier_keys(uint8_t scan1, uint8_t scan2)
 
 
 /*
+ * check_function_keys
+ *   DESCRIPTION: Checks if an ALT-FX comnination is being pressed, and causes
+ *                a terminal switch if it is valid
+ *   INPUTS: scan1 - the keyboard scan value
+ *   OUTPUTS: none
+ *   RETURN VALUE: int32_t - 1 if successful, 0 if not detected
+ *   SIDE EFFECTS: none
+ */
+int32_t
+check_function_keys(uint8_t scan1)
+{
+    if(l_alt || r_alt)
+    {
+        if (scan1 >= FUNCTION_1 && scan1 <= FUNCTION_3)
+        {
+            send_eoi(KEYBOARD_IRQ);
+            enable_irq(KEYBOARD_IRQ);
+            /* switch the terminal */
+            switch_active_terminal(scan1 - FUNCTION_1);
+
+            return 1;
+        }
+    }
+
+    /* will not come here if terminal was switched */
+    return 0;
+}
+
+
+/*
  * check_control_codes
  *   DESCRIPTION: Updates the buffer if any control codes have been detected.
  *                Currently supports - CTRL-A, CTRL-C, CTRL-L
@@ -410,27 +437,27 @@ check_control_codes(uint8_t scan1)
     {
         if(scan1 == SCAN_L)
         {
-            memset(buffer, '\0', MAX_BUFFER_SIZE);
-            buffer_size = 0;
-            buffer[buffer_size] = CTRL_L;
-            ack = 1;
-            buffer_size = 1;
+            memset(active_term()->buffer, '\0', MAX_BUFFER_SIZE);
+            active_term()->buffer_size = 0;
+            active_term()->buffer[active_term()->buffer_size] = CTRL_L;
+            active_term()->ack = 1;
+            active_term()->buffer_size = 1;
         }
         else if(scan1 == SCAN_A)
         {
-            memset(buffer, '\0', MAX_BUFFER_SIZE);
-            buffer_size = 0;
-            buffer[buffer_size] = CTRL_A;
-            ack = 1;
-            buffer_size = 1;
+            memset(active_term()->buffer, '\0', MAX_BUFFER_SIZE);
+            active_term()->buffer_size = 0;
+            active_term()->buffer[active_term()->buffer_size] = CTRL_A;
+            active_term()->ack = 1;
+            active_term()->buffer_size = 1;
         }
         else if(scan1 == SCAN_C)
         {
-            memset(buffer, '\0', MAX_BUFFER_SIZE);
-            buffer_size = 0;
-            buffer[buffer_size] = CTRL_C;
-            ack = 1;
-            buffer_size = 1;
+            memset(active_term()->buffer, '\0', MAX_BUFFER_SIZE);
+            active_term()->buffer_size = 0;
+            active_term()->buffer[active_term()->buffer_size] = CTRL_C;
+            active_term()->ack = 1;
+            active_term()->buffer_size = 1;
         }
 
         /* return 1 if any CTRL key is pressed */
@@ -471,25 +498,28 @@ print_character(uint8_t scan1)
 
     if(scan1 == SCAN_TAB)
     {
-        int i;
-        for (i = 0; i < 4; i++)
+        if (active_term()->buffer_size + 4 < MAX_BUFFER_SIZE - 2)
         {
-            if (read_ack)
+            int i;
+            for (i = 0; i < 4; i++)
             {
-                buffer[buffer_size] = (' ');
-                buffer_size++;
+                if (active_term()->read_ack)
+                {
+                    active_term()->buffer[active_term()->buffer_size] = ' ';
+                    active_term()->buffer_size++;
+                }
+                putc(' ');
             }
-            putc(' ');
         }
     }
     else if(output == 0 || scan1 == CURSOR_UP || scan1 == CURSOR_RIGHT ||
             scan1 == CURSOR_LEFT || scan1 == CURSOR_DOWN);
     else
     {
-        if (read_ack)
+        if (active_term()->read_ack)
         {
-            buffer[buffer_size] = output;
-            buffer_size++;
+            active_term()->buffer[active_term()->buffer_size] = output;
+            active_term()->buffer_size++;
         }
         putc(output);
     }

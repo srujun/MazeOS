@@ -8,9 +8,22 @@
 #include "filesystem.h"
 
 #define ESP_PCB_MASK           0xFFFFE000
-#define MAX_PROCESSES          2
+#define MAX_PROCESSES          6
 #define ARGS_LENGTH            128
 #define RETURN_EXCEPTION       256
+
+/* PIT Constants */
+#define PIT_IRQ                0
+
+#define PIT_CHANNEL0_REG       0x40
+#define PIT_CMD_REG            0x43
+
+#define PIT_BASE_FREQ          1193182  // Hz
+/* Mode 3 (square wave), select channel 0 (OSDev: PIT) */
+#define PIT_CMD_VAL            0x36
+/* 25 ms = 40 Hz */
+#define PIT_25MS               (PIT_BASE_FREQ / 40)
+#define PIT_200MS              (PIT_BASE_FREQ / 5)
 
 typedef struct pcb pcb_t;
 struct pcb {
@@ -21,6 +34,7 @@ struct pcb {
 
     pde_4M_t pde;
     uint32_t pde_virt_addr;
+    pte_t vidmem_pte;
     uint32_t vidmem_virt_addr;
 
     uint32_t esp;
@@ -41,5 +55,15 @@ pcb_t* get_pcb();
 int32_t get_available_pid();
 
 int32_t free_pid(uint32_t pid);
+
+/* Scheduling functions */
+void pit_init(void);
+
+uint32_t get_exec_term_num();
+void set_exec_term_num(uint32_t num);
+void context_switch(uint32_t next_term);
+
+/* Handles the programmable interrupt timer (PIT) interrupts */
+extern void pit_interrupt_handler(void);
 
 #endif

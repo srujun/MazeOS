@@ -22,7 +22,7 @@ extern void keyboard_irq(void);
 
 extern void rtc_irq(void);
 
-extern void pic_irq_pit(void);
+extern void pit_irq(void);
 
 extern void pic_irq_master(void);
 

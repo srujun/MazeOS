@@ -88,6 +88,8 @@ rtc_interrupt_handler(void)
 int32_t
 rtc_read(int32_t fd, void* buf, int32_t nbytes)
 {
+    rtc_interrupt_occurred = 0;
+
     /* spin while interrupt has not occurred */
     while(!rtc_interrupt_occurred);
 

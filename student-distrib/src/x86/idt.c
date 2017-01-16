@@ -22,28 +22,110 @@
  *   RETURN VALUE: none
  *   SIDE EFFECTS: Enters an infinite loop to relieve control from user
  */
-INTEL_EXCEPTION(intel_exception_0,  "EXCEPT 0: Divide by 0 error");
-INTEL_EXCEPTION(intel_exception_1,  "EXCEPT 1: Debug exception");
-INTEL_EXCEPTION(intel_exception_2,  "EXCEPT 2: NMI interrupt");
-INTEL_EXCEPTION(intel_exception_3,  "EXCEPT 3: Breakpoint exception");
-INTEL_EXCEPTION(intel_exception_4,  "EXCEPT 4: Overflow exception");
-INTEL_EXCEPTION(intel_exception_5,  "EXCEPT 5: Bound range exceeded");
-INTEL_EXCEPTION(intel_exception_6,  "EXCEPT 6: Invalid opcode exception");
-INTEL_EXCEPTION(intel_exception_7,  "EXCEPT 7: Device not available");
-INTEL_EXCEPTION(intel_exception_8,  "EXCEPT 8: Double fault");
-INTEL_EXCEPTION(intel_exception_9,  "EXCEPT 9: Coprocessor segment overrun");
-INTEL_EXCEPTION(intel_exception_10, "EXCEPT 10: Invalid TSS");
-INTEL_EXCEPTION(intel_exception_11, "EXCEPT 11: Segment not present");
-INTEL_EXCEPTION(intel_exception_12, "EXCEPT 12: Stack fault");
-INTEL_EXCEPTION(intel_exception_13, "EXCEPT 13: General protection exception");
-// INTEL_EXCEPTION(intel_exception_14, "EXCEPT 14: Page fault");
-/* 15 is Intel reserved */
-INTEL_EXCEPTION(intel_exception_16, "EXCEPT 16: FPU Floating Point Error");
-INTEL_EXCEPTION(intel_exception_17, "EXCEPT 17: Alignment check exception");
-INTEL_EXCEPTION(intel_exception_18, "EXCEPT 18: Machine check exception");
-INTEL_EXCEPTION(intel_exception_19, "EXCEPT 19: SIMD Floating Point Exception");
 
-void intel_page_fault()
+void intel_divide_error(void)
+{
+    printf("INTEL EXCEPT 0: Divide by 0 error\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_debug(void)
+{
+    printf("INTEL EXCEPT 1: Debug exception\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_nmi(void)
+{
+    printf("INTEL EXCEPT 2: NMI interrupt\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_int3(void)
+{
+    printf("INTEL EXCEPT 3: Breakpoint exception\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_overflow(void)
+{
+    printf("INTEL EXCEPT 4: Overflow exception\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_bounds(void)
+{
+    printf("INTEL EXCEPT 5: Bound range exceeded\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_invalid_op(void)
+{
+    printf("INTEL EXCEPT 6: Invalid opcode exception\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_device_not_available(void)
+{
+    printf("INTEL EXCEPT 7: Device not available\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_doublefault_fn(void)
+{
+    /* Pushes Error Code */
+    printf("INTEL EXCEPT 8: Double fault\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_coprocessor_seg_overrun(void)
+{
+    printf("INTEL EXCEPT 9: Coprocessor segment overrun\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_invalid_TSS(void)
+{
+    /* Pushes Error Code */
+    printf("INTEL EXCEPT 10: Invalid TSS\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_seg_not_present(void)
+{
+    /* Pushes Error Code */
+    printf("INTEL EXCEPT 11: Segment not present\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_stack_fault(void)
+{
+    /* Pushes Error Code */
+    printf("INTEL EXCEPT 12: Stack fault\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_gpf(void)
+{
+    printf("INTEL EXCEPT 13: General protection exception\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_page_fault(void)
 {
     uint32_t cr2;
     asm volatile (
@@ -54,7 +136,37 @@ void intel_page_fault()
         : "%eax"
     );
     printf("INTEL EXCEPT 14: Page Fault\n");
-    printf("Address that was accessed (CR2): %x\n", cr2);
+    printf("Address that was accessed (CR2): 0x%x\n", cr2);
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+/* 15 is Intel reserved */
+
+void intel_fpu_coprocessor_error(void)
+{
+    printf("INTEL EXCEPT 16: FPU Floating Point Error\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_alignment_check(void)
+{
+    printf("INTEL EXCEPT 17: Alignment check exception\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_machine_check(void)
+{
+    printf("INTEL EXCEPT 18: Machine check exception\n");
+    get_pcb()->retval = 256;
+    halt(0);
+}
+
+void intel_simd_coprocessor_error(void)
+{
+    printf("INTEL EXCEPT 19: SIMD Floating Point Exception\n");
     get_pcb()->retval = 256;
     halt(0);
 }
@@ -101,7 +213,7 @@ initialize_idt() {
                 SET_IDT_ENTRY(idt[i], &rtc_irq);
             /* PIT */
             else if (i == PIC_IRQ_START + PIT_IRQ)
-                SET_IDT_ENTRY(idt[i], &pic_irq_pit);
+                SET_IDT_ENTRY(idt[i], &pit_irq);
             /* unimplemented master PIC IRQs */
             else if (i <= PIC_IRQ_MASTER_END)
                 SET_IDT_ENTRY(idt[i], &pic_irq_master);
@@ -125,27 +237,26 @@ initialize_idt() {
     }
 
     /* Map all Intel exceptions in the IDT */
-    SET_IDT_ENTRY(idt[0],  &intel_exception_0);
-    SET_IDT_ENTRY(idt[1],  &intel_exception_1);
-    SET_IDT_ENTRY(idt[2],  &intel_exception_2);
-    SET_IDT_ENTRY(idt[3],  &intel_exception_3);
-    SET_IDT_ENTRY(idt[4],  &intel_exception_4);
-    SET_IDT_ENTRY(idt[5],  &intel_exception_5);
-    SET_IDT_ENTRY(idt[6],  &intel_exception_6);
-    SET_IDT_ENTRY(idt[7],  &intel_exception_7);
-    SET_IDT_ENTRY(idt[8],  &intel_exception_8);
-    SET_IDT_ENTRY(idt[9],  &intel_exception_9);
-    SET_IDT_ENTRY(idt[10], &intel_exception_10);
-    SET_IDT_ENTRY(idt[11], &intel_exception_11);
-    SET_IDT_ENTRY(idt[12], &intel_exception_12);
-    SET_IDT_ENTRY(idt[13], &intel_exception_13);
-    // SET_IDT_ENTRY(idt[14], &intel_exception_14);
+    SET_IDT_ENTRY(idt[0],  &intel_divide_error);
+    SET_IDT_ENTRY(idt[1],  &intel_debug);
+    SET_IDT_ENTRY(idt[2],  &intel_nmi);
+    SET_IDT_ENTRY(idt[3],  &intel_int3);
+    SET_IDT_ENTRY(idt[4],  &intel_overflow);
+    SET_IDT_ENTRY(idt[5],  &intel_bounds);
+    SET_IDT_ENTRY(idt[6],  &intel_invalid_op);
+    SET_IDT_ENTRY(idt[7],  &intel_device_not_available);
+    SET_IDT_ENTRY(idt[8],  &intel_doublefault_fn);
+    SET_IDT_ENTRY(idt[9],  &intel_coprocessor_seg_overrun);
+    SET_IDT_ENTRY(idt[10], &intel_invalid_TSS);
+    SET_IDT_ENTRY(idt[11], &intel_seg_not_present);
+    SET_IDT_ENTRY(idt[12], &intel_stack_fault);
+    SET_IDT_ENTRY(idt[13], &intel_gpf);
     SET_IDT_ENTRY(idt[14], &intel_page_fault);
     /* 15 is Intel reserved */
-    SET_IDT_ENTRY(idt[16], &intel_exception_16);
-    SET_IDT_ENTRY(idt[17], &intel_exception_17);
-    SET_IDT_ENTRY(idt[18], &intel_exception_18);
-    SET_IDT_ENTRY(idt[19], &intel_exception_19);
+    SET_IDT_ENTRY(idt[16], &intel_fpu_coprocessor_error);
+    SET_IDT_ENTRY(idt[17], &intel_alignment_check);
+    SET_IDT_ENTRY(idt[18], &intel_machine_check);
+    SET_IDT_ENTRY(idt[19], &intel_simd_coprocessor_error);
 }
 
 

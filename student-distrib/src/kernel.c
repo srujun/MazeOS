@@ -4,14 +4,16 @@
 
 #include "multiboot.h"
 #include "x86/x86_desc.h"
-#include "lib.h"
-#include "x86/i8259.h"
 #include "debug.h"
-#include "x86/idt.h"
+#include "lib.h"
 #include "paging.h"
+#include "filesystem.h"
+#include "process.h"
+#include "x86/i8259.h"
+#include "x86/idt.h"
 #include "drivers/rtc.h"
 #include "drivers/keyboard.h"
-#include "filesystem.h"
+#include "drivers/terminal.h"
 #include "syscalls/syscalls.h"
 
 /* Macros. */
@@ -177,6 +179,8 @@ entry (unsigned long magic, unsigned long addr)
 
 	/* Initialize devices, memory, filesystem, enable device interrupts on the
 	 * PIC, any other initialization stuff... */
+    terminal_init();
+	pit_init();
 	rtc_init();
 	keyboard_init();
 
@@ -193,7 +197,7 @@ entry (unsigned long magic, unsigned long addr)
     fs_init((void *)fs_start_addr, (void *)fs_end_addr);
 
 	/* Execute the first program (`shell') ... */
-    execute((uint8_t*)"shell");
+    execute((uint8_t *)"shell");
 
     /* Test Page Fault */
     /*int* j = NULL;

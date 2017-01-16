@@ -33,6 +33,10 @@ halt(uint8_t status)
 {
     int i;
     int32_t retval;
+    uint32_t k_esp, k_ebp, esp0;
+
+    cli();
+
     pcb_t * pcb = get_pcb();
 
     if (pcb->retval == RETURN_EXCEPTION)
@@ -47,18 +51,21 @@ halt(uint8_t status)
             pcb->fds[i].file_ops->close(i);
     }
 
+    /* free the PID (should never fail) */
     if (0 != free_pid(pcb->pid))
         printf("Should not have printed!\n");
-
-    uint32_t k_esp, esp0;
 
     /* unmap video memory if previously mapped */
     if (pcb->vidmem_virt_addr != 0)
         free_user_video_mem(pcb->vidmem_virt_addr);
 
-    if (pcb->parent == NULL) // Main process
+    /* update this process' terminal */
+    executing_term()->num_procs--;
+    executing_term()->child_procs[executing_term()->num_procs] = NULL;
+
+    if (pcb->parent == NULL) // First process on current terminal
     {
-        esp0 = k_esp = _8MB - _4B - (pcb->pid - 1) * _8KB;
+        esp0 = k_esp = k_ebp = _8MB - _4B - (pcb->pid - 1) * _8KB;
         clear_setpos(0, 0);
 
         /* restart shell */
@@ -66,7 +73,9 @@ halt(uint8_t status)
     }
     else // halting a child process
     {
+        /* get the parent's kstack values */
         k_esp = pcb->parent->k_esp;
+        k_ebp = pcb->parent->k_ebp;
         esp0 = pcb->parent->esp0;
 
         /* restore paging by mapping parent's page in the page directory */
@@ -80,10 +89,11 @@ halt(uint8_t status)
     asm volatile (
         "movl %0, %%eax      \n\t"
         "movl %1, %%esp      \n\t"
+        "movl %2, %%ebp      \n\t"
         "jmp BIG_FAT_RETURN"
         :
-        : "r" (retval), "r" (k_esp)
-        : "%eax", "%esp"
+        : "r" (retval), "r" (k_esp), "r" (k_ebp)
+        : "%eax", "%esp", "%ebp"
     );
 
     /* should never happen */
@@ -105,6 +115,9 @@ int32_t
 execute(const uint8_t * command)
 {
     uint32_t ret_kesp, ret_kebp;
+
+    cli();
+
     asm volatile (
         "movl %%esp, %0     \n\t"
         "movl %%ebp, %1     \n\t"
@@ -207,15 +220,16 @@ execute(const uint8_t * command)
     pcb.ebp = pcb.esp = _128MB + _4MB - _4B;
 
     /* initialize the kernel stack pointer */
-    pcb.k_ebp = pcb.k_esp = _8MB - _4B - (pcb.pid - 1) * _8KB;
+    pcb.k_ebp = pcb.k_esp = pcb.esp0 = _8MB - _4B - (pcb.pid - 1) * _8KB;
 
     /* load the parent pcb pointer */
-    if (pcb.pid == 1) // we are the first process
+    if (executing_term()->num_procs == 0)
+        // we are the first process in curr terminal
         pcb.parent = NULL;
     else
     {
         pcb.parent = get_pcb();
-        /* IMPORTANT: store current esp value in pcb of parent */
+        /* IMPORTANT: store current esp/ebp value in pcb of parent */
         pcb.parent->k_esp = ret_kesp;
         pcb.parent->k_ebp = ret_kebp;
     }
@@ -255,9 +269,13 @@ execute(const uint8_t * command)
 
     /* copy the new pcb to the new kernel stack */
     memcpy((void*)(pcb.k_esp & ESP_PCB_MASK), &pcb, sizeof(pcb_t));
+    /* put the PCB pointer in the terminal_t struct */
+    executing_term()->child_procs[executing_term()->num_procs] =
+                        (void*)(pcb.k_esp & ESP_PCB_MASK);
+    executing_term()->num_procs++;
 
     /* context switch -> write TSS values */
-    tss.esp0 = pcb.k_esp;
+    tss.esp0 = pcb.esp0;
     tss.ss0 = KERNEL_DS;
     // tss.ss0 does not need to be updated (remains KERNEL_DS)
 
@@ -514,9 +532,11 @@ vidmap(uint8_t** screen_start)
     pte.dirty = 0;
     pte.global = 0;
     pte.available = 0;
+    pte.base_addr = VIDEO_MEM_INDEX;
 
     map_user_video_mem(USER_VIDEO_MEM_ADDR, pte);
     get_pcb()->vidmem_virt_addr = USER_VIDEO_MEM_ADDR;
+    get_pcb()->vidmem_pte = pte;
 
     *screen_start = (uint8_t*)(USER_VIDEO_MEM_ADDR);
 

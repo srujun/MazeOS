@@ -1,0 +1,90 @@
+/* MazeOS Bug Log */
+
+
+====== CHECKPOINT 1 =======
+
+1)
+While trying to print page fault address : Stack gets clobbered when entering
+inline assembly hence old %eip isn't at esp+4 ( can't print the address from
+which fault occurs )
+Reported by: Simran and Srujun
+Fixes: Used CR2 to get the address of the instruction at which the page fault
+occurred.
+Time Taken: 5 Hours
+
+2) Having a header file inclusion in assembly files gives errors because it
+possibly thinks of it as assembly code.
+Reported by: Srujun
+Time Taken: 15 minutes
+
+3) Inline assembly doesn't recognize definitions through labels.
+Fixes: Use the values explicitly in inline assembly code.
+Reported by: Everyone
+Time Taken: 1 hour
+
+4) X and Y values would not get updated in certain cases causing putc to access
+pages outside the 4KB bound causing a page fault.
+Reported by: Checkpoint 1 TA
+Time Taken: 1 hour
+
+5) PIT has to be acknowledged otherwise the OS hangs.
+Reported by: Everyone
+Time Taken: 5 hours
+ 
+====== CHECKPOINT 2 =======
+
+1) Paging: Cannot directly load values into the control registers.
+Fixes: Load the value in a general purpose register in order to load it into
+Control Registers
+Reported by: Everyone
+Time Taken: 1 hour
+
+2) Double Fault occurs without initializing PIC while handling exceptions.
+Reported by: Arnav
+Time Taken: 2 hours
+
+====== CHECKPOINT 3 =======
+
+1) ENHANCEMENT Gate Types need to be handled appropriately.
+Fixes: Exceptions and System calls use a TRAP Gate (Similar to an interrupt
+gate, except that while transferring control to the proper segment, the
+processor does not modify the IF flag.)
+Interrupts use an Interrupt Gate (while transferring control to the proper
+segment, the processor clears the IF flag, thus disabling further
+maskable interrupts.)
+Reported by: Checkpoint 2 TA
+
+2) Have proper bound checks for the inputs by the user and the command names
+of the programs.
+Fixes: Ensure that only the filled amount or the requested number of bytes are
+flushed out on keyboard_read.
+Reported by: Checkpoint 3 TA
+Time Taken: 30 minutes
+
+3) When returning back to the parent program, the stack kept filling up. It
+eventually caused a page fault because of stack overflow. 
+Fixes: Set ESP0 in TSS to the bottom of the kernel stack to which the program
+has to return to.
+Reported by: Everyone
+Time Taken: 3 hours 
+ 
+===== CHECKPOINT 4 =======
+
+1) Do not fill in the keyboard buffer unless terminal read is called by a
+program. When on an active terminal, any kind of keyboard input doesn't fill
+in the buffer.
+Reported by: Arnav & Checkpoint 4 TA
+Time Taken: 1 hour
+
+===== CHECKPOINT 5 =======
+
+1) Buffer overflow caused the attrib field (The following entry after buffer
+in the struct) in the struct to get overwritten because of which the color of
+the screen got affected.
+Reported by: Srujun
+Time Taken: 15 minutes
+
+2) Backup video memory wasn't mapped properly. Causing some output to not show
+up on the screen
+Reported by: Anirban
+Time Taken: 5 hours

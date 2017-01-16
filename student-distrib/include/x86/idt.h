@@ -33,13 +33,6 @@
 #define INT_GATE_RESERVED_3      0
 #define TRAP_GATE_RESERVED_3     1
 
-#define INTEL_EXCEPTION(handler_name,desc)            \
-void handler_name()                                   \
-{                                                     \
-    clear_setpos(5, 10);                              \
-    printf(desc);                                     \
-    while(1);                                         \
-}
 
 /* External functions */
 

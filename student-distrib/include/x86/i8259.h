@@ -34,9 +34,6 @@
 
 #define PIC_MAX_PINS    8
 
-/* PIT */
-#define PIT_IRQ         0
-
 /* Externally-visible functions */
 
 /* Initialize both PICs */
@@ -48,8 +45,6 @@ void disable_irq(uint32_t irq_num);
 /* Send end-of-interrupt signal for the specified IRQ */
 void send_eoi(uint32_t irq_num);
 
-/* Handles the programmable interrupt timer (PIT) interrupts */
-extern void pit_interrupt_handler(void);
 /* Handles undefined IRQs from master PIC */
 extern void pic_master_irq_handler(void);
 /* Handles undefined IRQs from slave PIC */

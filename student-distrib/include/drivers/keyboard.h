@@ -32,6 +32,9 @@
 
 #define CAPS_PRESSED         0x3A
 
+#define ALT_PRESSED          0x38
+#define ALT_RELEASED         0xB8
+
 #define CTRL_PRESSED         0x1D
 #define CTRL_RELEASED        0x9D
 #define EXTENSION            0xE0
@@ -46,6 +49,10 @@
 #define CURSOR_LEFT          0x4B
 #define CURSOR_RIGHT         0x4D
 
+#define FUNCTION_1           0x3B
+#define FUNCTION_2           0x3C
+#define FUNCTION_3           0x3D
+
 #define BACKSPACE            0x0E
 
 /* Externally visible functions */
@@ -55,8 +62,6 @@ void keyboard_init();
 
 /* Handles the keyboard interrupts */
 extern void keyboard_interrupt_handler();
-
-void get_kb_buffer(void* buf);
 
 int keyboard_read(int32_t fd, void* buf, int32_t nbytes);
 
@@ -68,6 +73,7 @@ int keyboard_close(int32_t fd);
 
 /* local helper functions */
 int32_t check_modifier_keys(uint8_t scan1, uint8_t scan2);
+int32_t check_function_keys(uint8_t scan1);
 int32_t check_control_codes(uint8_t scan1);
 void print_character(uint8_t scan1);
 

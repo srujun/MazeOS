@@ -3,11 +3,11 @@
  */
 
 #include "lib.h"
+#include "drivers/terminal.h"
 
 #define VIDEO           0xB8000
 #define NUM_COLS        80
 #define NUM_ROWS        25
-#define ATTRIB          0x7
 
 #define CURSOR_PORT     0x3D4
 #define CURSOR_REG_HIGH 0x0E
@@ -16,8 +16,6 @@
 #define CURSOR_OFFSET   8
 
 
-static int screen_x;
-static int screen_y;
 static char* video_mem = (char *)VIDEO;
 
 /*
@@ -33,7 +31,7 @@ clear(void)
     int32_t i;
     for(i=0; i<NUM_ROWS*NUM_COLS; i++) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
-        *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
+        *(uint8_t *)(video_mem + (i << 1) + 1) = active_term()->attrib;
     }
 }
 
@@ -49,9 +47,9 @@ clear(void)
 void
 clear_setpos(int x, int y) {
     clear();
-    screen_x = x;
-    screen_y = y;
-    update_cursor(screen_x, screen_y);
+    active_term()->x_pos = x;
+    active_term()->y_pos = y;
+    update_cursor(active_term()->x_pos, active_term()->y_pos);
 }
 
 
@@ -215,28 +213,72 @@ putc(uint8_t c)
 {
     if(c == '\n' || c == '\r')
     {
-        if(screen_y == NUM_ROWS - 1)
-            shift_display();
+        if(active_term()->y_pos == NUM_ROWS - 1)
+            shift_display(video_mem);
         else
-            screen_y++;
-        screen_x = 0;
+            active_term()->y_pos++;
+        active_term()->x_pos = 0;
     }
     else
     {
-        *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1)) = c;
-        *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1) + 1) = ATTRIB;
-        screen_x++;
-        if(screen_x >= NUM_COLS)
+        *(uint8_t *)(video_mem + ((NUM_COLS*active_term()->y_pos +
+                    active_term()->x_pos) << 1)) = c;
+        *(uint8_t *)(video_mem + ((NUM_COLS*active_term()->y_pos +
+                    active_term()->x_pos) << 1) + 1) = active_term()->attrib;
+        active_term()->x_pos++;
+        if(active_term()->x_pos >= NUM_COLS)
         {
-            if(screen_y == NUM_ROWS - 1) // we are in the last row
-                shift_display();
+            if(active_term()->y_pos == NUM_ROWS - 1) // we are in the last row
+                shift_display(video_mem);
             else
-                screen_y++;
-            screen_x = 0;
+                active_term()->y_pos++;
+            active_term()->x_pos = 0;
         }
     }
-    update_cursor(screen_x, screen_y);
+
+    update_cursor(active_term()->x_pos, active_term()->y_pos);
 }
+
+
+/*
+* void putc(uint8_t c);
+*   Inputs: uint_8* c = character to print
+*   Return Value: void
+*	Function: Output a character to the console 
+*/
+void
+putc_buffer(uint8_t c)
+{
+    if(c == '\n' || c == '\r')
+    {
+        if(executing_term()->y_pos == NUM_ROWS - 1)
+            shift_display((char*)executing_term()->virt_vidmem_backup);
+        else
+            executing_term()->y_pos++;
+        executing_term()->x_pos = 0;
+    }
+    else
+    {
+        *(uint8_t *)(executing_term()->virt_vidmem_backup +
+                ((NUM_COLS*executing_term()->y_pos +
+                    executing_term()->x_pos) << 1)) = c;
+        *(uint8_t *)(executing_term()->virt_vidmem_backup +
+                ((NUM_COLS*executing_term()->y_pos +
+                    executing_term()->x_pos) << 1) + 1) = executing_term()->attrib;
+        executing_term()->x_pos++;
+        if(executing_term()->x_pos >= NUM_COLS)
+        {
+            if(executing_term()->y_pos == NUM_ROWS - 1) // we are in the last row
+                shift_display((char*)executing_term()->virt_vidmem_backup);
+            else
+                executing_term()->y_pos++;
+            executing_term()->x_pos = 0;
+        }
+    }
+    if(executing_term() == active_term())
+    	update_cursor(executing_term()->x_pos, executing_term()->y_pos);
+}
+
 
 /*
  * shift_display
@@ -250,21 +292,30 @@ putc(uint8_t c)
  *   SIDE EFFECTS: changes values in video memory
  */
 void
-shift_display()
+shift_display(char* write_mem)
 {
     int j;
 
     for(j = 1; j < NUM_ROWS; j++)
     {
-        void * dest = video_mem + ((NUM_COLS * (j - 1)) << 1);
-        void * src  = video_mem + ((NUM_COLS * j) << 1);;
+        void * dest = write_mem + ((NUM_COLS * (j - 1)) << 1);
+        void * src  = write_mem + ((NUM_COLS * j) << 1);;
         memcpy(dest, src, NUM_COLS * 2);
     }
 
     for(j = 0; j < NUM_COLS; j++)
     {
-        *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1)) = ' ';
-        *(uint8_t *)(video_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1) + 1) = ATTRIB;
+        *(uint8_t *)(write_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1)) = ' ';
+        if (write_mem == video_mem)
+        {
+            *(uint8_t *)(write_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1) + 1) =
+                        active_term()->attrib;
+        }
+        else
+        {
+            *(uint8_t *)(write_mem + ((NUM_COLS*(NUM_ROWS-1) + j) << 1) + 1) =
+                        executing_term()->attrib;
+        }
     }
 }
 
@@ -305,25 +356,25 @@ update_cursor(int col, int row)
 void
 do_backspace()
 {
-    if(screen_x == 0 && screen_y == 0)
+    if(active_term()->x_pos == 0 && active_term()->y_pos == 0)
         return;
-    if(screen_x != 0)
-        screen_x--;
+    if(active_term()->x_pos != 0)
+        active_term()->x_pos--;
     else
     {
-        screen_y--;
-        screen_x = NUM_COLS - 1;
+        active_term()->y_pos--;
+        active_term()->x_pos = NUM_COLS - 1;
     }
-    update_cursor(screen_x, screen_y);
+    update_cursor(active_term()->x_pos, active_term()->y_pos);
     putc(' ');
-    if(screen_x != 0)
-        screen_x--;
+    if(active_term()->x_pos != 0)
+        active_term()->x_pos--;
     else
     {
-        screen_y--;
-        screen_x = NUM_COLS - 1;
+        active_term()->y_pos--;
+        active_term()->x_pos = NUM_COLS - 1;
     }
-    update_cursor(screen_x, screen_y);
+    update_cursor(active_term()->x_pos, active_term()->y_pos);
 }
 
 /*

@@ -186,7 +186,7 @@ fs_read(int32_t fd, void* buf, int32_t nbytes)
             else
             {
                 memcpy(buf, d.filename, FILENAME_SIZE + 1);
-                return FILENAME_SIZE + 1;
+                return strlen(d.filename);
             }
         }
         /* read_dentry_by_index failed */

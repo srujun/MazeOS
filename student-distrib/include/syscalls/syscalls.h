@@ -12,7 +12,7 @@
 #define ELF_HEADER                0x464C457F
 #define BASE_ADDR_4MB_OFFSET      22
 #define IMAGE_LOAD_OFFSET         0x48000
-#define USER_VIDEO_MEM_ADDR       (_128MB + _8MB)
+#define USER_VIDEO_MEM_ADDR       (_128MB + _4MB)
 
 #define SYS_HALT                  1
 #define SYS_EXECUTE               2
